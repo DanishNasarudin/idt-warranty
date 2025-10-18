@@ -12,6 +12,7 @@ import {
   getNextSequenceNumber,
 } from "@/lib/utils/service-number";
 import { revalidatePath } from "next/cache";
+import nodemailer from "nodemailer";
 
 export async function getWarrantyCasesByBranch(
   branchId: number,
@@ -387,5 +388,119 @@ export async function deleteWarrantyCase(
     }
 
     throw new Error(error.message || "Failed to delete warranty case");
+  }
+}
+
+/**
+ * Sends an email with warranty case details and PDF attachment
+ * @param warrantyCase - The warranty case to send
+ * @param pdfBase64 - The PDF as a base64 encoded string
+ * @returns void
+ */
+export async function sendWarrantyCaseEmail(
+  warrantyCase: WarrantyCaseWithRelations,
+  pdfBase64: string
+): Promise<void> {
+  try {
+    // Validate customer email
+    if (!warrantyCase.customerEmail) {
+      throw new Error("Customer email is not available");
+    }
+
+    // Get email configuration from environment variables
+    const emailHost = process.env.SMTP_HOST;
+    const emailPort = parseInt(process.env.SMTP_PORT || "587");
+    const emailSecure = process.env.SMTP_SECURE === "true";
+    const emailUser = process.env.SMTP_USER;
+    const emailPass = process.env.SMTP_PASS;
+    const emailFrom = process.env.SMTP_FROM || emailUser;
+
+    if (!emailHost || !emailUser || !emailPass) {
+      throw new Error(
+        "Email configuration is missing. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS in environment variables."
+      );
+    }
+
+    // Convert base64 string to Buffer
+    const pdfBuffer = Buffer.from(pdfBase64, "base64");
+
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      host: emailHost,
+      port: emailPort,
+      secure: emailSecure,
+      auth: {
+        user: emailUser,
+        pass: emailPass,
+      },
+      pool: true,
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    // Create filename with format: [serviceNo]_IdealTechPC_Service_YYYYMMDD.pdf
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const filename = `${warrantyCase.serviceNo}_IdealTechPC_Service_${year}${month}${day}.pdf`;
+
+    // Create email content
+    const statusText = warrantyCase.status.replace(/_/g, " ");
+    const mailOptions = {
+      from: `Ideal Tech PC Service <${emailFrom}>`,
+      to: warrantyCase.customerEmail,
+      cc: emailFrom,
+      replyTo: emailFrom,
+      subject: `Warranty Case ${warrantyCase.serviceNo} - ${warrantyCase.customerName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Warranty Case Details</h2>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Service Number:</strong> ${warrantyCase.serviceNo}</p>
+            <p><strong>Customer Name:</strong> ${warrantyCase.customerName}</p>
+            <p><strong>Status:</strong> ${statusText}</p>
+            ${
+              warrantyCase.receivedItems
+                ? `<p><strong>Received Items:</strong> ${warrantyCase.receivedItems}</p>`
+                : ""
+            }
+            ${
+              warrantyCase.issues
+                ? `<p><strong>Issues:</strong> ${warrantyCase.issues}</p>`
+                : ""
+            }
+            ${
+              warrantyCase.solutions
+                ? `<p><strong>Solutions:</strong> ${warrantyCase.solutions}</p>`
+                : ""
+            }
+          </div>
+
+          <p>Please find attached the detailed warranty case receipt.</p>
+          
+          <p style="color: #666; font-size: 12px; margin-top: 30px;">
+            This is an automated email. Please do not reply directly to this message.
+          </p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: filename,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    console.log(`Email sent successfully to ${warrantyCase.customerEmail}`);
+  } catch (error: any) {
+    console.error("Error sending warranty case email:", error);
+    throw new Error(error.message || "Failed to send email");
   }
 }

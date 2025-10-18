@@ -21,6 +21,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { PrintPDFButton } from "./print-pdf-button";
+import { SendEmailButton } from "./send-email-button";
 
 type ExpandableRowDetailsProps = {
   case_: WarrantyCaseWithRelations;
@@ -116,6 +117,9 @@ export function ExpandableRowDetails({
         <div className="flex items-center gap-2">
           {/* Print PDF Button */}
           <PrintPDFButton case_={case_} />
+
+          {/* Send Email Button - Only shows if customer email exists */}
+          <SendEmailButton case_={case_} />
 
           {/* Delete Button with Confirmation */}
           <AlertDialog>
