@@ -13,3 +13,161 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+enum CaseStatus {
+  IN_QUEUE
+  IN_PROGRESS
+  WAITING_FOR
+  COMPLETED
+}
+
+enum ChangeType {
+  INSERT
+  UPDATE
+  DELETE
+}
+
+model Branch {
+  id   Int    @id @default(autoincrement())
+  code String @unique @db.VarChar(16) // e.g. 'AP','JB','S2','SA','PN'
+  name String @db.VarChar(64)
+
+  cases WarrantyCase[]
+  staff StaffOnBranch[]
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+}
+
+model CaseScope {
+  id   Int    @id @default(autoincrement())
+  code String @unique @db.VarChar(16) // 'LOCAL' | 'OTHER'
+
+  cases     WarrantyCase[]
+  createdAt DateTime       @default(now()) @db.DateTime(3)
+  updatedAt DateTime       @updatedAt @db.DateTime(3)
+}
+
+model Staff {
+  id    Int     @id @default(autoincrement())
+  name  String  @db.VarChar(255)
+  color String? @db.VarChar(32)
+
+  branches StaffOnBranch[]
+
+  receivedCases   WarrantyCase[]    @relation("ReceivedByStaff")
+  servicedCases   WarrantyCase[]    @relation("ServicedByStaff")
+  changeHistories WarrantyHistory[]
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  @@index([name])
+}
+
+model StaffOnBranch {
+  staffId  Int
+  branchId Int
+
+  staff  Staff  @relation(fields: [staffId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([staffId, branchId])
+  @@index([branchId])
+}
+
+model WarrantyCase {
+  id Int @id @default(autoincrement())
+
+  serviceNo String @db.VarChar(64)
+
+  branchId Int
+  scopeId  Int
+  branch   Branch    @relation(fields: [branchId], references: [id], onUpdate: Cascade)
+  scope    CaseScope @relation(fields: [scopeId], references: [id], onUpdate: Cascade)
+
+  status CaseStatus @default(IN_QUEUE)
+
+  customerName    String?   @db.VarChar(100)
+  customerContact String?   @db.VarChar(40)
+  customerEmail   String?   @db.VarChar(254)
+  address         String?   @db.Text
+  purchaseDate    DateTime? @db.DateTime(3)
+  invoice         String?   @db.VarChar(100)
+  receivedItems   String?   @db.VarChar(250)
+  pin             String?   @db.Text
+  issues          String?   @db.Text
+  solutions       String?   @db.Text
+  statusDesc      String?   @db.Text
+  remarks         String?   @db.Text
+  cost            Decimal   @default(0) @db.Decimal(10, 2)
+  locker          Int?
+  idtPc           Boolean?
+
+  receivedByStaffId Int?
+  receivedBy        Staff? @relation("ReceivedByStaff", fields: [receivedByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)
+  servicedByStaffId Int?
+  servicedBy        Staff? @relation("ServicedByStaff", fields: [servicedByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)
+
+  history WarrantyHistory[]
+  files   WarrantyCaseFile[]
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  // Uniqueness: one serviceNo per branch+scope
+  @@unique([serviceNo, branchId, scopeId], name: "ux_serviceNo_branch_scope")
+  @@index([branchId, status, createdAt], name: "ix_branch_status_createdAt")
+  @@index([customerEmail], name: "ix_customerEmail")
+  @@index([serviceNo], name: "ix_serviceNo")
+  // Fulltext search (MySQL 5.7+/8.0+)
+  @@fulltext([issues, solutions], map: "ft_issues_solutions")
+}
+
+model WarrantyHistory {
+  id Int @id @default(autoincrement())
+
+  caseId Int
+  case   WarrantyCase @relation(fields: [caseId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  changeType ChangeType
+  changeTs   DateTime   @default(now()) @db.DateTime(3)
+
+  changedByStaffId Int?
+  changedBy        Staff? @relation(fields: [changedByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)
+
+  // Optional: store a snapshot
+  snapshotJson String? @db.Text
+
+  @@index([caseId, changeTs], name: "ix_case_changeTs")
+}
+
+model FileStore {
+  id        Int     @id @default(autoincrement())
+  fileName  String? @db.VarChar(255)
+  mimeType  String? @db.VarChar(127)
+  sizeBytes Int?
+  sha256    String  @unique @db.Char(64)
+  url       String  @db.VarChar(1024)
+
+  data Bytes @db.LongBlob
+
+  cases WarrantyCaseFile[]
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  @@index([fileName])
+  @@index([mimeType])
+}
+
+model WarrantyCaseFile {
+  caseId Int
+  fileId Int
+
+  case WarrantyCase @relation(fields: [caseId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  file FileStore    @relation(fields: [fileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([caseId, fileId])
+  @@index([fileId])
+}
