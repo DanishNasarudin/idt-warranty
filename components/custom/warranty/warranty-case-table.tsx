@@ -15,6 +15,7 @@ import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect } from "react";
+import { StaffBadge } from "../staff-badge";
 import { DropdownCell } from "./dropdown-cell";
 import { EditableTextCell } from "./editable-text-cell";
 import { ExpandableRowDetails } from "./expandable-row-details";
@@ -96,6 +97,13 @@ export function WarrantyCaseTable({
     if (!staffId) return "Not assigned";
     const staff = staffOptions.find((s) => s.id === staffId);
     return staff?.name || "Unknown";
+  };
+
+  const getStaffBadge = (staffId: number | null) => {
+    if (!staffId) return null;
+    const staff = staffOptions.find((s) => s.id === staffId);
+    if (!staff) return null;
+    return <StaffBadge name={staff.name} color={staff.color} />;
   };
 
   const getStatusDisplayValue = (status: CaseStatus) => {
@@ -200,9 +208,22 @@ export function WarrantyCaseTable({
                         onSelect={(value) =>
                           handleUpdate(case_.id, "receivedByStaffId", value)
                         }
-                        getDisplayValue={(value) =>
-                          getStaffDisplayValue(value as number | null)
-                        }
+                        getDisplayValue={(value) => {
+                          if (!value) return "Not assigned";
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return staff?.name || "Unknown";
+                        }}
+                        renderValue={(value) => {
+                          if (!value) return null;
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return staff ? (
+                            <StaffBadge name={staff.name} color={staff.color} />
+                          ) : null;
+                        }}
                       />
                     </TableCell>
 
@@ -216,9 +237,22 @@ export function WarrantyCaseTable({
                         onSelect={(value) =>
                           handleUpdate(case_.id, "servicedByStaffId", value)
                         }
-                        getDisplayValue={(value) =>
-                          getStaffDisplayValue(value as number | null)
-                        }
+                        getDisplayValue={(value) => {
+                          if (!value) return "Not assigned";
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return staff?.name || "Unknown";
+                        }}
+                        renderValue={(value) => {
+                          if (!value) return null;
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return staff ? (
+                            <StaffBadge name={staff.name} color={staff.color} />
+                          ) : null;
+                        }}
                       />
                     </TableCell>
 

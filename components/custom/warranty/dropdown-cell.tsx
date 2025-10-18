@@ -22,6 +22,7 @@ type DropdownCellProps = {
   allowNull?: boolean;
   className?: string;
   getDisplayValue?: (value: string | number | boolean | null) => string;
+  renderValue?: (value: string | number | boolean | null) => React.ReactNode;
 };
 
 export function DropdownCell({
@@ -31,10 +32,13 @@ export function DropdownCell({
   allowNull = true,
   className,
   getDisplayValue,
+  renderValue,
 }: DropdownCellProps) {
   const displayValue = getDisplayValue
     ? getDisplayValue(value)
     : value?.toString() || "Not set";
+
+  const renderedValue = renderValue ? renderValue(value) : null;
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,7 +56,9 @@ export function DropdownCell({
             className
           )}
         >
-          <span className="truncate">{displayValue}</span>
+          <span className="truncate flex items-center gap-2">
+            {renderedValue || displayValue}
+          </span>
           <div className="flex items-center gap-1">
             {allowNull && value !== null && (
               <X

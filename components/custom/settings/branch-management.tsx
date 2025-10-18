@@ -1,0 +1,333 @@
+"use client";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+type BranchWithCounts = {
+  id: number;
+  code: string;
+  name: string;
+  _count: {
+    staff: number;
+    cases: number;
+  };
+};
+
+type BranchManagementProps = {
+  initialBranches: BranchWithCounts[];
+  onCreateBranch: (data: { code: string; name: string }) => Promise<any>;
+  onUpdateBranch: (
+    id: number,
+    data: { code?: string; name?: string }
+  ) => Promise<any>;
+  onDeleteBranch: (id: number) => Promise<void>;
+};
+
+export function BranchManagement({
+  initialBranches,
+  onCreateBranch,
+  onUpdateBranch,
+  onDeleteBranch,
+}: BranchManagementProps) {
+  const [branches, setBranches] = useState<BranchWithCounts[]>(initialBranches);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<BranchWithCounts | null>(
+    null
+  );
+  const [deletingBranch, setDeletingBranch] = useState<BranchWithCounts | null>(
+    null
+  );
+
+  const [formData, setFormData] = useState({ code: "", name: "" });
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newBranch = await onCreateBranch(formData);
+      setBranches([
+        ...branches,
+        { ...newBranch, _count: { staff: 0, cases: 0 } },
+      ]);
+      toast.success("Branch created successfully");
+      setIsCreateOpen(false);
+      setFormData({ code: "", name: "" });
+    } catch (error) {
+      toast.error("Failed to create branch");
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBranch) return;
+
+    try {
+      const updated = await onUpdateBranch(editingBranch.id, formData);
+      setBranches(
+        branches.map((b) =>
+          b.id === updated.id ? { ...updated, _count: b._count } : b
+        )
+      );
+      toast.success("Branch updated successfully");
+      setEditingBranch(null);
+      setFormData({ code: "", name: "" });
+    } catch (error) {
+      toast.error("Failed to update branch");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingBranch) return;
+
+    try {
+      await onDeleteBranch(deletingBranch.id);
+      setBranches(branches.filter((b) => b.id !== deletingBranch.id));
+      toast.success("Branch deleted successfully");
+      setDeletingBranch(null);
+    } catch (error) {
+      toast.error("Failed to delete branch. It may have associated data.");
+    }
+  };
+
+  const openEditDialog = (branch: BranchWithCounts) => {
+    setEditingBranch(branch);
+    setFormData({ code: branch.code, name: branch.name });
+  };
+
+  const closeEditDialog = () => {
+    setEditingBranch(null);
+    setFormData({ code: "", name: "" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Branches</h2>
+          <p className="text-muted-foreground">
+            Manage branch locations and their information
+          </p>
+        </div>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Branch
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <form onSubmit={handleCreate}>
+              <DialogHeader>
+                <DialogTitle>Create New Branch</DialogTitle>
+                <DialogDescription>
+                  Add a new branch location to the system
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">Branch Code</Label>
+                  <Input
+                    id="code"
+                    placeholder="e.g., AP, SS2, JB"
+                    value={formData.code}
+                    onChange={(e) =>
+                      setFormData({ ...formData, code: e.target.value })
+                    }
+                    required
+                    maxLength={16}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Branch Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., Ampang HQ, SS2 PJ"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                    maxLength={64}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Create Branch</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead className="text-center">Staff</TableHead>
+              <TableHead className="text-center">Cases</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {branches.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  No branches found. Create one to get started.
+                </TableCell>
+              </TableRow>
+            ) : (
+              branches.map((branch) => (
+                <TableRow key={branch.id}>
+                  <TableCell className="font-mono font-medium">
+                    {branch.code}
+                  </TableCell>
+                  <TableCell>{branch.name}</TableCell>
+                  <TableCell className="text-center">
+                    {branch._count.staff}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {branch._count.cases}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(branch)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingBranch(branch)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={!!editingBranch}
+        onOpenChange={(open) => !open && closeEditDialog()}
+      >
+        <DialogContent>
+          <form onSubmit={handleUpdate}>
+            <DialogHeader>
+              <DialogTitle>Edit Branch</DialogTitle>
+              <DialogDescription>Update branch information</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-code">Branch Code</Label>
+                <Input
+                  id="edit-code"
+                  value={formData.code}
+                  onChange={(e) =>
+                    setFormData({ ...formData, code: e.target.value })
+                  }
+                  required
+                  maxLength={16}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Branch Name</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                  maxLength={64}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeEditDialog}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={!!deletingBranch}
+        onOpenChange={(open) => !open && setDeletingBranch(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the branch &quot;
+              {deletingBranch?.name}&quot;. This action cannot be undone.
+              {deletingBranch &&
+                (deletingBranch._count.staff > 0 ||
+                  deletingBranch._count.cases > 0) && (
+                  <span className="block mt-2 text-destructive font-medium">
+                    Warning: This branch has {deletingBranch._count.staff} staff
+                    member(s) and {deletingBranch._count.cases} warranty
+                    case(s).
+                  </span>
+                )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

@@ -4,13 +4,10 @@ import { UserButton } from "@clerk/nextjs";
 import {
   Home,
   House,
-  HouseHeart,
-  HousePlug,
-  HousePlus,
-  HouseWifi,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -23,39 +20,23 @@ import SidebarButton from "./sidebar-button";
 import { ModeToggle } from "./theme-toggle";
 import TooltipWrapper from "./tooltip-wrapper";
 
-const links: {
-  id: string;
-  title: string;
-  icon: JSX.Element;
-}[] = [
-  {
-    id: "ampang",
-    title: "Ampang HQ",
-    icon: <HouseWifi />,
-  },
-  {
-    id: "ss2",
-    title: "SS2, PJ",
-    icon: <HousePlus />,
-  },
-  {
-    id: "sa",
-    title: "Setia Alam",
-    icon: <HouseHeart />,
-  },
-  {
-    id: "jb",
-    title: "Johor Bahru",
-    icon: <HousePlug />,
-  },
-  {
-    id: "penang",
-    title: "Penang",
-    icon: <House />,
-  },
-];
+type Branch = {
+  id: number;
+  code: string;
+  name: string;
+};
 
-export default function Sidebar() {
+type SidebarClientProps = {
+  branches: Branch[];
+};
+
+// Icon mapping for branches - can be customized later
+const getBranchIcon = (code: string): JSX.Element => {
+  // You can add custom logic here to map codes to specific icons
+  return <House />;
+};
+
+export default function SidebarClient({ branches }: SidebarClientProps) {
   const [open, setOpen] = useLocalStorage<boolean>("ui.sidebarOpen", false);
   const router = useRouter();
 
@@ -130,18 +111,8 @@ export default function Sidebar() {
               </p>
             )}
           </SidebarButton>
-        </div>
-      </div>
-      <Separator />
-      <div className="h-full p-2 gap-1 flex flex-col">
-        {links.map((l, idx) => (
-          <SidebarButton
-            key={idx}
-            id={`/branch/${l.id}`}
-            isIcon={!open}
-            name={l.title}
-          >
-            {l.icon}{" "}
+          <SidebarButton id="/settings" isIcon={!open} name={"Settings"}>
+            <Settings />{" "}
             {open && (
               <p
                 data-state={open}
@@ -149,7 +120,30 @@ export default function Sidebar() {
                   "animate-in fade-in-0 data-[state=false]:animate-out data-[state=false]:fade-out-0"
                 )}
               >
-                {l.title}
+                Settings
+              </p>
+            )}
+          </SidebarButton>
+        </div>
+      </div>
+      <Separator />
+      <div className="h-full p-2 gap-1 flex flex-col">
+        {branches.map((branch) => (
+          <SidebarButton
+            key={branch.id}
+            id={`/branch/${branch.id}`}
+            isIcon={!open}
+            name={branch.name}
+          >
+            {getBranchIcon(branch.code)}{" "}
+            {open && (
+              <p
+                data-state={open}
+                className={cn(
+                  "animate-in fade-in-0 data-[state=false]:animate-out data-[state=false]:fade-out-0"
+                )}
+              >
+                {branch.name}
               </p>
             )}
           </SidebarButton>

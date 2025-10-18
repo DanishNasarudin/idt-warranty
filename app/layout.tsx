@@ -1,4 +1,4 @@
-import Sidebar from "@/components/custom/sidebar";
+import Sidebar from "@/components/custom/sidebar-wrapper";
 import Providers from "@/lib/providers";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
