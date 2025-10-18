@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionButton, IconButton } from "@/components/design-system";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -194,10 +194,7 @@ export function BranchManagement({
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Branch
-            </Button>
+            <ActionButton action="add" label="Add Branch" />
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreate}>
@@ -281,7 +278,12 @@ export function BranchManagement({
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Create Branch</Button>
+                <ActionButton
+                  type="submit"
+                  action="create"
+                  label="Create Branch"
+                  showIcon={false}
+                />
               </DialogFooter>
             </form>
           </DialogContent>
@@ -324,20 +326,21 @@ export function BranchManagement({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
+                      <IconButton
                         variant="ghost"
                         size="sm"
+                        icon={Pencil}
+                        label="Edit branch"
                         onClick={() => openEditDialog(branch)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      />
+                      <IconButton
                         variant="ghost"
                         size="sm"
+                        icon={Trash2}
+                        label="Delete branch"
                         onClick={() => setDeletingBranch(branch)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                        className="text-destructive hover:text-destructive"
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -427,10 +430,13 @@ export function BranchManagement({
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeEditDialog}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Changes</Button>
+              <ActionButton
+                type="button"
+                action="cancel"
+                onClick={closeEditDialog}
+                showIcon={false}
+              />
+              <ActionButton type="submit" action="save" showIcon={false} />
             </DialogFooter>
           </form>
         </DialogContent>

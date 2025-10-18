@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { StaffOption } from "@/lib/types/warranty";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -118,10 +117,7 @@ export function CreateWarrantyCaseDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Case
-        </Button>
+        <ActionButton action="create" label="Create Case" />
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -329,17 +325,21 @@ export function CreateWarrantyCaseDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button
+            <ActionButton
               type="button"
-              variant="outline"
+              action="cancel"
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Case"}
-            </Button>
+              showIcon={false}
+            />
+            <ActionButton
+              type="submit"
+              action="create"
+              label="Create Case"
+              isLoading={isSubmitting}
+              loadingText="Creating..."
+              showIcon={false}
+            />
           </DialogFooter>
         </form>
       </DialogContent>

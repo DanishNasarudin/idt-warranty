@@ -7,6 +7,8 @@ make sure we use nextjs conventional method, keeping the page server component, 
 
 use shadcn component where possible.
 
+always check the component functionality/css classes before using them.
+
 you may use zustand as the state manager if required.
 
 refer to the folder structure for current architecture context.

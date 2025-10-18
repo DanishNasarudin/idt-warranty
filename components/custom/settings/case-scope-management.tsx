@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionButton, IconButton } from "@/components/design-system";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -131,10 +131,7 @@ export function CaseScopeManagement({
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Case Scope
-            </Button>
+            <ActionButton action="add" label="Add Case Scope" />
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreate}>
@@ -159,17 +156,16 @@ export function CaseScopeManagement({
                 </div>
               </div>
               <DialogFooter>
-                <Button
+                <ActionButton
                   type="button"
-                  variant="outline"
+                  action="cancel"
                   onClick={() => {
                     setIsCreateOpen(false);
                     setFormData({ code: "" });
                   }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Create</Button>
+                  showIcon={false}
+                />
+                <ActionButton type="submit" action="create" showIcon={false} />
               </DialogFooter>
             </form>
           </DialogContent>
@@ -204,20 +200,19 @@ export function CaseScopeManagement({
                   <TableCell>{caseScope._count.cases}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button
+                      <IconButton
                         variant="ghost"
-                        size="icon"
+                        icon={Pencil}
+                        label="Edit case scope"
                         onClick={() => openEditDialog(caseScope)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      />
+                      <IconButton
                         variant="ghost"
-                        size="icon"
+                        icon={Trash2}
+                        label="Delete case scope"
                         onClick={() => setDeletingCaseScope(caseScope)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        className="text-destructive hover:text-destructive"
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -255,10 +250,18 @@ export function CaseScopeManagement({
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeEditDialog}>
-                Cancel
-              </Button>
-              <Button type="submit">Update</Button>
+              <ActionButton
+                type="button"
+                action="cancel"
+                onClick={closeEditDialog}
+                showIcon={false}
+              />
+              <ActionButton
+                type="submit"
+                action="save"
+                label="Update"
+                showIcon={false}
+              />
             </DialogFooter>
           </form>
         </DialogContent>
