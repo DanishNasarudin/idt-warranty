@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useState } from "react";
 
 type DatePickerCellProps = {
@@ -49,13 +49,13 @@ export function DatePickerCell({
     <Button
       variant="ghost"
       className={cn(
-        "w-full justify-start text-left font-normal h-auto py-1 px-2",
+        "w-full justify-start text-left font-normal h-auto py-1 px-0",
         !dateValue && "text-muted-foreground",
         isLocked && "cursor-not-allowed opacity-70 bg-muted/50"
       )}
       disabled={isLocked}
     >
-      <CalendarIcon className="mr-2 h-4 w-4" />
+      {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
       {dateValue ? format(dateValue, "dd/MM/yyyy") : <span>{placeholder}</span>}
       {isLocked && <Lock className="ml-auto h-3 w-3 text-muted-foreground" />}
     </Button>

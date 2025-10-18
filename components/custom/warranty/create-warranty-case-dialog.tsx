@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StaffOption } from "@/lib/types/warranty";
+import { format } from "date-fns";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ export type CreateWarrantyCaseFormData = {
   customerContact?: string;
   customerEmail?: string;
   address?: string;
-  purchaseDate?: string;
+  purchaseDate?: Date;
   invoice?: string;
   receivedItems?: string;
   pin?: string;
@@ -57,7 +58,7 @@ export function CreateWarrantyCaseDialog({
     customerContact: "",
     customerEmail: "",
     address: "",
-    purchaseDate: "",
+    purchaseDate: undefined,
     invoice: "",
     receivedItems: "",
     pin: "",
@@ -89,7 +90,7 @@ export function CreateWarrantyCaseDialog({
         customerContact: "",
         customerEmail: "",
         address: "",
-        purchaseDate: "",
+        purchaseDate: undefined,
         invoice: "",
         receivedItems: "",
         pin: "",
@@ -185,13 +186,47 @@ export function CreateWarrantyCaseDialog({
             {/* Purchase Date */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="purchaseDate">Purchase Date</Label>
-              <Input
-                id="purchaseDate"
-                type="date"
-                value={formData.purchaseDate}
-                onChange={(e) => updateFormData("purchaseDate", e.target.value)}
-                className="col-span-3"
-              />
+              <div className="col-span-3 flex gap-2">
+                <Input
+                  id="purchaseDate"
+                  type="date"
+                  value={
+                    formData.purchaseDate
+                      ? format(formData.purchaseDate, "yyyy-MM-dd")
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const dateValue = e.target.value
+                      ? new Date(e.target.value + "T00:00:00")
+                      : undefined;
+                    updateFormData("purchaseDate", dateValue);
+                  }}
+                  className="flex-1"
+                />
+                {/* <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "shrink-0",
+                        !formData.purchaseDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={formData.purchaseDate}
+                      onSelect={(date) => updateFormData("purchaseDate", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover> */}
+              </div>
             </div>
 
             {/* Invoice */}
