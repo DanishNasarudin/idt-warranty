@@ -1,36 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IDT Warranty Management System
 
-## Getting Started
+A modern, full-featured warranty case management system built with Next.js 15, React 19, and Prisma.
 
-First, run the development server:
+## 🌟 Features
+
+- **Google Sheets-like Interface** - Click-to-edit cells with instant updates
+- **Expandable Rows** - Accordion-style details for comprehensive case information
+- **Smart Dropdowns** - Selectable options with clear/null functionality
+- **Auto-save** - All changes automatically persist to database
+- **Type-safe** - Full TypeScript coverage from database to UI
+- **Clean Architecture** - Scalable, maintainable codebase
+- **Server Components** - Optimal performance with Next.js App Router
+- **Real-time Ready** - Architecture prepared for Socket.io integration
+
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Setup database
+npx prisma generate
+npx prisma migrate deploy
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000/branch/1](http://localhost:3000/branch/1)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**For detailed setup instructions, see [QUICK_START.md](./QUICK_START.md)**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📚 Documentation
 
-## Learn More
+- **[Quick Start Guide](./QUICK_START.md)** - Get up and running quickly
+- **[Implementation Summary](./IMPLEMENTATION_SUMMARY.md)** - Complete feature list and details
+- **[Architecture Diagram](./ARCHITECTURE_DIAGRAM.md)** - System architecture and data flow
+- **[Database Setup](./DATABASE_SETUP.md)** - Database configuration and seeding
+- **[Component Documentation](./app/branch/[id]/README.md)** - Detailed component guide
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠 Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **UI Components**: Shadcn UI, Lucide React
+- **State Management**: Zustand
+- **Backend**: Next.js Server Actions, Prisma ORM
+- **Database**: MySQL
+- **Authentication**: Clerk (optional)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📋 Main Features
 
-## Deploy on Vercel
+### Interactive Table
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Purchase Date column with formatted display
+- Service Number - click-to-edit
+- IDT PC? - dropdown (Yes/No/Not set)
+- Received By - staff selection dropdown
+- Serviced By - staff selection dropdown
+- Customer Name - click-to-edit
+- Customer Contact - click-to-edit
+- Status - dropdown (4 states)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Expandable Row Details
+
+- Customer Email
+- Purchase Date
+- Address
+- Invoice
+- Received Items
+- PIN
+- Issues & Solutions
+- Status Description
+- Remarks
+- Cost & Locker
+
+## 🏗 Project Structure
+
+```
+app/
+├── branch/[id]/           # Branch-specific warranty cases
+│   ├── page.tsx          # Server component
+│   ├── actions.ts        # Server actions
+│   └── README.md         # Component docs
+
+components/custom/warranty/
+├── warranty-case-table.tsx           # Main table
+├── editable-text-cell.tsx            # Text editing
+├── dropdown-cell.tsx                 # Dropdown selection
+└── expandable-row-details.tsx        # Expanded view
+
+lib/
+├── stores/               # Zustand stores
+├── types/                # TypeScript types
+└── generated/prisma/     # Generated Prisma client
+
+prisma/
+├── schema.prisma         # Database schema
+└── migrations/           # Database migrations
+```
+
+## 🎯 Usage
+
+### Editing Data
+
+1. **Click text cells** to edit (Service No, Name, Contact)
+2. **Click dropdowns** to select options
+3. **Click expand button (▶)** to view/edit all fields
+4. **Changes auto-save** on blur or Enter
+
+### Key Shortcuts
+
+- **Enter** - Save and close editing
+- **Escape** - Cancel editing
+- **Click outside** - Save and close
+
+## 🔄 Future Enhancements
+
+- [ ] Socket.io for real-time collaboration
+- [ ] Bulk operations (multi-select)
+- [ ] Advanced filtering and search
+- [ ] Export to Excel/CSV
+- [ ] Audit trail with history
+- [ ] Comments and @mentions
+- [ ] File attachments
+- [ ] Dashboard analytics
+
+## 🤝 Contributing
+
+This project follows clean architecture principles and Next.js best practices. When contributing:
+
+1. Keep server and client components separate
+2. Use TypeScript for type safety
+3. Follow the existing component patterns
+4. Add tests for new features
+5. Update documentation
+
+## 📝 Environment Variables
+
+Create a `.env` file:
+
+```env
+DATABASE_URL="mysql://user:password@localhost:3306/idt_warranty"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Optional: Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***
+CLERK_SECRET_KEY=sk_***
+```
+
+## 🧪 Development Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run server-build # Build with database migrations
+
+# Prisma commands
+npx prisma generate       # Generate Prisma Client
+npx prisma migrate dev    # Create migration
+npx prisma migrate deploy # Apply migrations
+npx prisma studio         # Open Prisma Studio
+npx prisma db seed        # Seed database
+```
+
+## 📄 License
+
+[Your License Here]
+
+## 👥 Authors
+
+[Your Name/Team]
+
+---
+
+**Built with ❤️ using Next.js 15 and React 19**
