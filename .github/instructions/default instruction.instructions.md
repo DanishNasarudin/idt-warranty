@@ -9,4 +9,6 @@ use shadcn component where possible.
 
 you may use zustand as the state manager if required.
 
+refer to the folder structure for current architecture context.
+
 not required to create summary document.

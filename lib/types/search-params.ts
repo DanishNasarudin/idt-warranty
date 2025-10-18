@@ -14,6 +14,14 @@ export type SortField =
 
 export type SortDirection = "asc" | "desc";
 
+export type DateRangePreset = "all" | "lastWeek" | "lastMonth" | "custom";
+
+export type DateRangeFilter = {
+  preset: DateRangePreset;
+  startDate?: string; // ISO string
+  endDate?: string; // ISO string
+};
+
 export type WarrantyCaseFilters = {
   search: string;
   searchField: SearchField;
@@ -21,4 +29,8 @@ export type WarrantyCaseFilters = {
   sortDirection: SortDirection;
   page: number;
   limit: number;
+};
+
+export type DashboardFilters = {
+  dateRange: DateRangeFilter;
 };
