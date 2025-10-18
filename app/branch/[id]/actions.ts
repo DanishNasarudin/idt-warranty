@@ -158,6 +158,17 @@ export async function updateWarrantyCase(
     delete updateData.branch;
     delete updateData.scope;
 
+    // Get current user's staff ID if available
+    const { auth } = await import("@clerk/nextjs/server");
+    const { userId } = await auth();
+
+    // Find staff by clerk user ID (assuming staff might have a relation to clerk user)
+    // For now, we'll pass undefined if we can't determine the staff ID
+    // You may need to add a mapping between Clerk users and Staff records
+
+    // Create snapshot of the changes
+    const snapshot = JSON.stringify(updateData);
+
     await prisma.warrantyCase.update({
       where: {
         id: caseId,
@@ -165,10 +176,11 @@ export async function updateWarrantyCase(
       data: updateData,
     });
 
+    // Create history entry after successful update
+    await createWarrantyHistory(caseId, "UPDATE", undefined, snapshot);
+
     // Import sseManager dynamically to avoid initialization issues
     const { sseManager } = await import("@/lib/utils/sse-manager");
-    const { auth } = await import("@clerk/nextjs/server");
-    const { userId } = await auth();
 
     // Broadcast update to other users via SSE
     if (userId) {
@@ -531,5 +543,75 @@ export async function sendWarrantyCaseEmail(
   } catch (error: any) {
     console.error("Error sending warranty case email:", error);
     throw new Error(error.message || "Failed to send email");
+  }
+}
+
+/**
+ * Fetches warranty history for a specific branch with pagination
+ * @param branchId - The branch ID to fetch history for
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of records per page
+ * @returns Paginated warranty history records
+ */
+export async function getWarrantyHistoryByBranch(
+  branchId: number,
+  page: number = 1,
+  pageSize: number = 50
+) {
+  try {
+    const skip = (page - 1) * pageSize;
+
+    // Get total count for pagination
+    const totalCount = await prisma.warrantyHistory.count({
+      where: {
+        case: {
+          branchId,
+        },
+      },
+    });
+
+    // Fetch history records with relations
+    const historyRecords = await prisma.warrantyHistory.findMany({
+      where: {
+        case: {
+          branchId,
+        },
+      },
+      include: {
+        case: {
+          select: {
+            id: true,
+            serviceNo: true,
+            customerName: true,
+            status: true,
+          },
+        },
+        changedBy: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+      orderBy: {
+        changeTs: "desc",
+      },
+      skip,
+      take: pageSize,
+    });
+
+    return {
+      records: historyRecords,
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching warranty history:", error);
+    throw new Error("Failed to fetch warranty history");
   }
 }

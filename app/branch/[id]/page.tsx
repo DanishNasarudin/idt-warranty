@@ -1,7 +1,10 @@
 import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-case-table-wrapper";
+import { Button } from "@/components/ui/button";
 import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
+import { History } from "lucide-react";
+import Link from "next/link";
 import {
   createWarrantyCase,
   getBranch,
@@ -59,7 +62,14 @@ export default async function Page({
   // Server action wrapper for client component - create case
   async function handleCreateCase(data: CreateWarrantyCaseFormData) {
     "use server";
-    await createWarrantyCase(branchId, data);
+    // Convert Date to ISO string for server action
+    const serverData = {
+      ...data,
+      purchaseDate: data.purchaseDate
+        ? data.purchaseDate.toISOString()
+        : undefined,
+    };
+    await createWarrantyCase(branchId, serverData);
   }
 
   return (
@@ -74,6 +84,12 @@ export default async function Page({
               Branch: <strong>{branch?.name}</strong>
             </p>
           </div>
+          <Link href={`/branch/${branchId}/history`}>
+            <Button variant="outline">
+              <History className="h-4 w-4 mr-2" />
+              View History
+            </Button>
+          </Link>
         </div>
 
         <WarrantyCaseTableWrapper
