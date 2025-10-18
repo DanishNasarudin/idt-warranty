@@ -19,10 +19,10 @@ import {
   getStatusColor,
   getStatusLabel,
 } from "@/lib/utils/status-colors";
-import { format } from "date-fns";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Fragment, useEffect } from "react";
 import { StaffBadge } from "../staff-badge";
+import { DatePickerCell } from "./date-picker-cell";
 import { DropdownCell } from "./dropdown-cell";
 import { EditableTextCell } from "./editable-text-cell";
 import { ExpandableRowDetails } from "./expandable-row-details";
@@ -225,6 +225,7 @@ export function WarrantyCaseTable({
           ) : (
             displayedCases.map((case_) => {
               const isExpanded = expandedRows.has(case_.id);
+              const createdAtLock = getFieldLockStatus(case_.id, "createdAt");
               const serviceNoLock = getFieldLockStatus(case_.id, "serviceNo");
               const customerNameLock = getFieldLockStatus(
                 case_.id,
@@ -254,9 +255,14 @@ export function WarrantyCaseTable({
                     </TableCell>
 
                     <TableCell className="py-1 px-2">
-                      {case_.createdAt
-                        ? format(new Date(case_.createdAt), "dd/MM/yyyy")
-                        : "-"}
+                      <DatePickerCell
+                        value={case_.createdAt}
+                        onSave={(value) =>
+                          handleUpdate(case_.id, "createdAt", value)
+                        }
+                        isLocked={createdAtLock.isLocked}
+                        lockedBy={createdAtLock.lockedBy}
+                      />
                     </TableCell>
 
                     <TableCell className="py-1 px-2">
