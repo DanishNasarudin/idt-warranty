@@ -249,15 +249,14 @@ export async function createWarrantyCase(
     } as WarrantyCaseWithRelations;
   } catch (error: any) {
     console.error("Error creating warranty case:", error);
-    
+
     // Handle unique constraint violation
     if (error.code === "P2002") {
       throw new Error(
         "A warranty case with this service number already exists in this branch and scope"
       );
     }
-    
+
     throw new Error(error.message || "Failed to create warranty case");
   }
 }
-

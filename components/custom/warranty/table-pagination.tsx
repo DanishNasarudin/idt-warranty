@@ -41,7 +41,8 @@ export function TablePagination() {
 
   const handleFirstPage = () => setCurrentPage(1);
   const handlePreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
-  const handleNextPage = () => setCurrentPage(Math.min(totalPages, currentPage + 1));
+  const handleNextPage = () =>
+    setCurrentPage(Math.min(totalPages, currentPage + 1));
   const handleLastPage = () => setCurrentPage(totalPages);
 
   return (

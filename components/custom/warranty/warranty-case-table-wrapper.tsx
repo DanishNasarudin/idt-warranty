@@ -6,7 +6,10 @@ import {
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
 import { toast } from "sonner";
-import { CreateWarrantyCaseDialog, CreateWarrantyCaseFormData } from "./create-warranty-case-dialog";
+import {
+  CreateWarrantyCaseDialog,
+  CreateWarrantyCaseFormData,
+} from "./create-warranty-case-dialog";
 import { TablePagination } from "./table-pagination";
 import { TableToolbar } from "./table-toolbar";
 import { WarrantyCaseTable } from "./warranty-case-table";

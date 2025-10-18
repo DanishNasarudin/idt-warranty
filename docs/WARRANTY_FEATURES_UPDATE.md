@@ -1,16 +1,19 @@
 # Warranty Case Management Features Update
 
 ## Overview
+
 Added comprehensive search, filter, sort, pagination, and create features to the warranty case management system while maintaining Next.js 15 conventions and clean architecture principles.
 
 ## Architecture Decisions
 
 ### Server/Client Component Separation
+
 - **Server Components**: `page.tsx` remains a server component for data fetching
 - **Client Components**: Only interactive UI components marked with "use client"
 - **Server Actions**: Data mutations handled via server actions with proper revalidation
 
 ### State Management
+
 - **Zustand Store**: Centralized client-side state for UI interactions
 - **Computed Getters**: Efficient filtering, sorting, and pagination logic
 - **Optimistic Updates**: Instant UI feedback with server-side validation
@@ -18,7 +21,9 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ## New Features
 
 ### 1. Create Warranty Case
+
 **Component**: `CreateWarrantyCaseDialog`
+
 - Modal dialog with comprehensive form
 - Required fields: Service No, Customer Name
 - Optional fields: Contact, Email, Address, Purchase Date, Invoice, etc.
@@ -26,6 +31,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 - Server action integration for data persistence
 
 **Server Action**: `createWarrantyCase`
+
 - Validates required fields
 - Handles unique constraint violations
 - Creates warranty history entry
@@ -33,7 +39,9 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 - Returns proper error messages
 
 ### 2. Search & Filter
+
 **Component**: `TableToolbar`
+
 - Search input with real-time filtering
 - Search field options:
   - All Fields (default)
@@ -45,7 +53,9 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 - Clear filters button
 
 ### 3. Sort Feature
+
 **Component**: `TableToolbar`
+
 - Sort by multiple fields:
   - Date Created (default)
   - Last Updated
@@ -57,7 +67,9 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 - Integrated with search/filter
 
 ### 4. Pagination
+
 **Component**: `TablePagination`
+
 - Rows per page selector: 10, 20, 50, 100 (default: 20)
 - Navigation controls:
   - First page
@@ -71,13 +83,16 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ## File Changes
 
 ### New Files Created
+
 1. **`components/custom/warranty/create-warranty-case-dialog.tsx`**
+
    - Dialog component for creating warranty cases
    - Form with 13+ fields
    - Client-side validation
    - Toast notifications
 
 2. **`components/custom/warranty/table-toolbar.tsx`**
+
    - Search input
    - Search field filter dropdown
    - Sort field dropdown
@@ -93,6 +108,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ### Modified Files
 
 1. **`lib/stores/warranty-case-store.ts`**
+
    - Added search state: `searchQuery`, `searchField`
    - Added sort state: `sortField`, `sortDirection`
    - Added pagination state: `currentPage`, `rowsPerPage`
@@ -105,11 +121,13 @@ Added comprehensive search, filter, sort, pagination, and create features to the
    - Added `resetFilters()` to clear all filters
 
 2. **`components/custom/warranty/warranty-case-table.tsx`**
+
    - Updated to use `getPaginatedCases()` instead of all cases
    - Maintains existing edit/update functionality
    - Displays correct subset of data
 
 3. **`components/custom/warranty/warranty-case-table-wrapper.tsx`**
+
    - Added `branchId` prop
    - Added `onCreateCase` handler
    - Integrated `TableToolbar` component
@@ -118,12 +136,14 @@ Added comprehensive search, filter, sort, pagination, and create features to the
    - Proper layout with spacing
 
 4. **`app/branch/[id]/page.tsx`**
+
    - Added `handleCreateCase` server action wrapper
    - Passed `branchId` to wrapper component
    - Passed `onCreateCase` handler to wrapper
    - Maintains server component status
 
 5. **`app/branch/[id]/actions.ts`**
+
    - Added `createWarrantyCase()` server action
    - Validates required fields
    - Gets default scope automatically
@@ -138,6 +158,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ## Technical Implementation Details
 
 ### Search Algorithm
+
 ```typescript
 // Searches across multiple fields based on selected filter
 // Case-insensitive matching
@@ -146,6 +167,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ```
 
 ### Sort Algorithm
+
 ```typescript
 // Handles different data types:
 // - Dates: Converted to timestamps
@@ -155,6 +177,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ```
 
 ### Pagination Logic
+
 ```typescript
 // Calculates visible items based on:
 // - Current page
@@ -164,6 +187,7 @@ Added comprehensive search, filter, sort, pagination, and create features to the
 ```
 
 ### State Flow
+
 ```
 Server (page.tsx)
   ↓ Initial data fetch
@@ -194,6 +218,7 @@ Server Action
 ## Usage Guidelines
 
 ### Creating a Warranty Case
+
 1. Click "Create Warranty Case" button
 2. Fill in required fields (Service No, Customer Name)
 3. Optionally fill additional details
@@ -203,6 +228,7 @@ Server Action
 7. Table automatically refreshes with new case
 
 ### Searching Cases
+
 1. Type in search box
 2. Select specific field or "All Fields"
 3. Results update in real-time
@@ -210,18 +236,20 @@ Server Action
 5. Click X to clear search
 
 ### Sorting Cases
+
 1. Select sort field from dropdown
 2. Click sort direction icon to toggle
 3. Table updates immediately
 4. Works with active search filters
 
 ### Navigating Pages
+
 1. Select rows per page (10/20/50/100)
 2. Use navigation buttons:
    - << First page
    - < Previous page
    - > Next page
-   - >> Last page
+   - > > Last page
 3. Page info displayed at bottom
 
 ## Scalability Features
@@ -245,6 +273,7 @@ Server Action
 ## Dependencies
 
 All features use existing shadcn/ui components:
+
 - `Dialog` - Create case modal
 - `Input` - Search and form inputs
 - `Select` - Dropdowns for filters/pagination

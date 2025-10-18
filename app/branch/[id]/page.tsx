@@ -1,3 +1,4 @@
+import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-case-table-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
@@ -8,7 +9,6 @@ import {
   getWarrantyCasesByBranch,
   updateWarrantyCase,
 } from "./actions";
-import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 
 export default async function Page({
   params,

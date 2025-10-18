@@ -93,7 +93,9 @@ export function TableToolbar() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+          onClick={() =>
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+          }
           title={sortDirection === "asc" ? "Sort ascending" : "Sort descending"}
         >
           {sortDirection === "asc" ? (

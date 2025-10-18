@@ -247,3 +247,84 @@ export async function deleteStaff(id: number) {
     );
   }
 }
+
+// ============= CASE SCOPE ACTIONS =============
+
+export async function getAllCaseScopes() {
+  try {
+    const caseScopes = await prisma.caseScope.findMany({
+      orderBy: {
+        code: "asc",
+      },
+      include: {
+        _count: {
+          select: {
+            cases: true,
+          },
+        },
+      },
+    });
+    return caseScopes;
+  } catch (error) {
+    console.error("Error fetching case scopes:", error);
+    throw new Error("Failed to fetch case scopes");
+  }
+}
+
+export async function createCaseScope(data: { code: string }) {
+  try {
+    const caseScope = await prisma.caseScope.create({
+      data: {
+        code: data.code,
+      },
+      include: {
+        _count: {
+          select: {
+            cases: true,
+          },
+        },
+      },
+    });
+    revalidatePath("/settings");
+    return caseScope;
+  } catch (error) {
+    console.error("Error creating case scope:", error);
+    throw new Error("Failed to create case scope");
+  }
+}
+
+export async function updateCaseScope(
+  id: number,
+  data: { code?: string }
+) {
+  try {
+    const caseScope = await prisma.caseScope.update({
+      where: { id },
+      data,
+      include: {
+        _count: {
+          select: {
+            cases: true,
+          },
+        },
+      },
+    });
+    revalidatePath("/settings");
+    return caseScope;
+  } catch (error) {
+    console.error("Error updating case scope:", error);
+    throw new Error("Failed to update case scope");
+  }
+}
+
+export async function deleteCaseScope(id: number) {
+  try {
+    await prisma.caseScope.delete({
+      where: { id },
+    });
+    revalidatePath("/settings");
+  } catch (error) {
+    console.error("Error deleting case scope:", error);
+    throw new Error("Failed to delete case scope. It may have associated data.");
+  }
+}
