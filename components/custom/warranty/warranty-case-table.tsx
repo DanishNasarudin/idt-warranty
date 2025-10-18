@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,23 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CaseStatus } from "@/lib/generated/prisma";
 import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing-store";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
-import {
-  getIdtPcClassName,
-  getStaffBadgeClassName,
-  getStatusColor,
-  getStatusLabel,
-} from "@/lib/utils/status-colors";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { Fragment, useCallback, useEffect, useMemo, useRef } from "react";
-import { StaffBadge } from "../staff-badge";
-import { DatePickerCell } from "./date-picker-cell";
-import { DropdownCell } from "./dropdown-cell";
-import { EditableTextCell } from "./editable-text-cell";
-import { ExpandableRowDetails } from "./expandable-row-details";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { WarrantyCaseRow } from "./warranty-case-row";
 
 type WarrantyCaseTableProps = {
   initialCases: WarrantyCaseWithRelations[];
@@ -40,34 +27,6 @@ type WarrantyCaseTableProps = {
   userId?: string;
 };
 
-const STATUS_OPTIONS = [
-  {
-    label: "In Queue",
-    value: CaseStatus.IN_QUEUE,
-    className: getStatusColor(CaseStatus.IN_QUEUE),
-  },
-  {
-    label: "In Progress",
-    value: CaseStatus.IN_PROGRESS,
-    className: getStatusColor(CaseStatus.IN_PROGRESS),
-  },
-  {
-    label: "Waiting For",
-    value: CaseStatus.WAITING_FOR,
-    className: getStatusColor(CaseStatus.WAITING_FOR),
-  },
-  {
-    label: "Completed",
-    value: CaseStatus.COMPLETED,
-    className: getStatusColor(CaseStatus.COMPLETED),
-  },
-];
-
-const IDT_PC_OPTIONS = [
-  { label: "Yes", value: true, className: getIdtPcClassName(true) },
-  { label: "No", value: false, className: getIdtPcClassName(false) },
-];
-
 export function WarrantyCaseTable({
   initialCases,
   initialStaff,
@@ -77,17 +36,18 @@ export function WarrantyCaseTable({
   onReleaseFieldLock,
   userId = "",
 }: WarrantyCaseTableProps) {
-  const {
-    cases,
-    staffOptions,
-    expandedRows,
-    editingCell,
-    setCases,
-    setStaffOptions,
-    updateCase,
-    toggleRowExpansion,
-    setEditingCell,
-  } = useWarrantyCaseStore();
+  // Selective subscriptions to prevent unnecessary re-renders
+  const cases = useWarrantyCaseStore((state) => state.cases);
+  const staffOptions = useWarrantyCaseStore((state) => state.staffOptions);
+  const expandedRows = useWarrantyCaseStore((state) => state.expandedRows);
+  const setCases = useWarrantyCaseStore((state) => state.setCases);
+  const setStaffOptions = useWarrantyCaseStore(
+    (state) => state.setStaffOptions
+  );
+  const updateCase = useWarrantyCaseStore((state) => state.updateCase);
+  const toggleRowExpansion = useWarrantyCaseStore(
+    (state) => state.toggleRowExpansion
+  );
 
   // Only subscribe to optimisticUpdates, not the entire store
   const optimisticUpdates = useCollaborativeEditingStore(
@@ -174,33 +134,6 @@ export function WarrantyCaseTable({
     [updateCase, onUpdateField, onUpdateCase, cases]
   );
 
-  const handleEditStart = useCallback(
-    async (caseId: number, field: string) => {
-      // Try to acquire lock if locking is enabled
-      if (onAcquireFieldLock) {
-        const acquired = await onAcquireFieldLock(caseId, field);
-        if (!acquired) {
-          return; // Lock acquisition failed
-        }
-      }
-
-      setEditingCell({ caseId, field });
-    },
-    [onAcquireFieldLock, setEditingCell]
-  );
-
-  const handleEditEnd = useCallback(
-    async (caseId: number, field: string) => {
-      setEditingCell(null);
-
-      // Release lock if locking is enabled
-      if (onReleaseFieldLock) {
-        await onReleaseFieldLock(caseId, field);
-      }
-    },
-    [onReleaseFieldLock, setEditingCell]
-  );
-
   const getFieldLockStatus = useCallback(
     (caseId: number, field: string) => {
       if (!userId) return { isLocked: false, lockedBy: undefined };
@@ -210,11 +143,6 @@ export function WarrantyCaseTable({
         isLocked: lock !== null,
         lockedBy: lock?.userName,
       };
-
-      // Debug logging
-      if (lock) {
-        console.log(`[Lock Status] Case ${caseId}, Field ${field}:`, status);
-      }
 
       return status;
     },
@@ -233,16 +161,6 @@ export function WarrantyCaseTable({
       }
     },
     [updateCase, onUpdateCase]
-  );
-
-  const getStaffBadge = useCallback(
-    (staffId: number | null) => {
-      if (!staffId) return null;
-      const staff = staffOptions.find((s) => s.id === staffId);
-      if (!staff) return null;
-      return <StaffBadge name={staff.name} color={staff.color} />;
-    },
-    [staffOptions]
   );
 
   return (
@@ -278,233 +196,27 @@ export function WarrantyCaseTable({
               </TableCell>
             </TableRow>
           ) : (
-            displayedCases.map((case_) => {
-              const isExpanded = expandedRows.has(case_.id);
-              const createdAtLock = getFieldLockStatus(case_.id, "createdAt");
-              const serviceNoLock = getFieldLockStatus(case_.id, "serviceNo");
-              const customerNameLock = getFieldLockStatus(
-                case_.id,
-                "customerName"
-              );
-              const customerContactLock = getFieldLockStatus(
-                case_.id,
-                "customerContact"
-              );
-
-              return (
-                <Fragment key={case_.id}>
-                  <TableRow className="hover:bg-muted/50">
-                    <TableCell className="py-1 px-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleRowExpansion(case_.id)}
-                        className="h-6 w-6 p-0"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <DatePickerCell
-                        value={case_.createdAt}
-                        onSave={(value) =>
-                          handleUpdate(case_.id, "createdAt", value)
-                        }
-                        isLocked={createdAtLock.isLocked}
-                        lockedBy={createdAtLock.lockedBy}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <EditableTextCell
-                        value={case_.serviceNo}
-                        onSave={(value) =>
-                          handleUpdate(case_.id, "serviceNo", value)
-                        }
-                        isEditing={
-                          editingCell?.caseId === case_.id &&
-                          editingCell?.field === "serviceNo"
-                        }
-                        onEditStart={() =>
-                          handleEditStart(case_.id, "serviceNo")
-                        }
-                        onEditEnd={() => handleEditEnd(case_.id, "serviceNo")}
-                        isLocked={serviceNoLock.isLocked}
-                        lockedBy={serviceNoLock.lockedBy}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <DropdownCell
-                        value={case_.idtPc}
-                        options={IDT_PC_OPTIONS}
-                        onSelect={(value) =>
-                          handleUpdate(case_.id, "idtPc", value)
-                        }
-                        getDisplayValue={(value) =>
-                          value === null ? "Not set" : value ? "Yes" : "No"
-                        }
-                        getBadgeClassName={(value) =>
-                          getIdtPcClassName(value as boolean | null)
-                        }
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <DropdownCell
-                        value={case_.receivedByStaffId}
-                        options={staffOptions.map((s) => ({
-                          label: s.name,
-                          value: s.id,
-                          className: getStaffBadgeClassName(s.color),
-                        }))}
-                        onSelect={(value) =>
-                          handleUpdate(case_.id, "receivedByStaffId", value)
-                        }
-                        getDisplayValue={(value) => {
-                          if (!value) return "Not assigned";
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return staff?.name || "Unknown";
-                        }}
-                        getBadgeClassName={(value) => {
-                          if (!value) return "";
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return getStaffBadgeClassName(staff?.color);
-                        }}
-                        renderValue={(value) => {
-                          if (!value) return null;
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return staff?.name || null;
-                        }}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <DropdownCell
-                        value={case_.servicedByStaffId}
-                        options={staffOptions.map((s) => ({
-                          label: s.name,
-                          value: s.id,
-                          className: getStaffBadgeClassName(s.color),
-                        }))}
-                        onSelect={(value) =>
-                          handleUpdate(case_.id, "servicedByStaffId", value)
-                        }
-                        getDisplayValue={(value) => {
-                          if (!value) return "Not assigned";
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return staff?.name || "Unknown";
-                        }}
-                        getBadgeClassName={(value) => {
-                          if (!value) return "";
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return getStaffBadgeClassName(staff?.color);
-                        }}
-                        renderValue={(value) => {
-                          if (!value) return null;
-                          const staff = staffOptions.find(
-                            (s) => s.id === value
-                          );
-                          return staff?.name || null;
-                        }}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <EditableTextCell
-                        value={case_.customerName}
-                        onSave={(value) =>
-                          handleUpdate(case_.id, "customerName", value)
-                        }
-                        isEditing={
-                          editingCell?.caseId === case_.id &&
-                          editingCell?.field === "customerName"
-                        }
-                        onEditStart={() =>
-                          handleEditStart(case_.id, "customerName")
-                        }
-                        onEditEnd={() =>
-                          handleEditEnd(case_.id, "customerName")
-                        }
-                        isLocked={customerNameLock.isLocked}
-                        lockedBy={customerNameLock.lockedBy}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <EditableTextCell
-                        value={case_.customerContact}
-                        onSave={(value) =>
-                          handleUpdate(case_.id, "customerContact", value)
-                        }
-                        isEditing={
-                          editingCell?.caseId === case_.id &&
-                          editingCell?.field === "customerContact"
-                        }
-                        onEditStart={() =>
-                          handleEditStart(case_.id, "customerContact")
-                        }
-                        onEditEnd={() =>
-                          handleEditEnd(case_.id, "customerContact")
-                        }
-                        isLocked={customerContactLock.isLocked}
-                        lockedBy={customerContactLock.lockedBy}
-                      />
-                    </TableCell>
-
-                    <TableCell className="py-1 px-2">
-                      <DropdownCell
-                        value={case_.status}
-                        options={STATUS_OPTIONS}
-                        onSelect={(value) =>
-                          handleUpdate(case_.id, "status", value)
-                        }
-                        allowNull={false}
-                        getDisplayValue={(value) =>
-                          getStatusLabel(value as CaseStatus)
-                        }
-                        getBadgeClassName={(value) =>
-                          getStatusColor(value as CaseStatus)
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-
-                  <TableRow
-                    key={`accordion-${case_.id}`}
-                    className={`border-0 ${isExpanded && "border-b"}`}
-                  >
-                    <TableCell colSpan={9} className="p-0">
-                      <ExpandableRowDetails
-                        case_={case_}
-                        onUpdate={(updates) =>
-                          handleMultiFieldUpdate(case_.id, updates)
-                        }
-                        onAcquireFieldLock={onAcquireFieldLock}
-                        onReleaseFieldLock={onReleaseFieldLock}
-                        userId={userId}
-                        isExpanded={isExpanded}
-                      />
-                    </TableCell>
-                  </TableRow>
-                </Fragment>
-              );
-            })
+            displayedCases.map((case_) => (
+              <WarrantyCaseRow
+                key={case_.id}
+                case_={case_}
+                staffOptions={staffOptions}
+                isExpanded={expandedRows.has(case_.id)}
+                onToggleExpanded={() => toggleRowExpansion(case_.id)}
+                onUpdate={(field, value) =>
+                  handleUpdate(case_.id, field, value)
+                }
+                onMultiFieldUpdate={(updates) =>
+                  handleMultiFieldUpdate(case_.id, updates)
+                }
+                onAcquireFieldLock={onAcquireFieldLock}
+                onReleaseFieldLock={onReleaseFieldLock}
+                userId={userId}
+                getFieldLockStatus={(field) =>
+                  getFieldLockStatus(case_.id, field)
+                }
+              />
+            ))
           )}
         </TableBody>
       </Table>

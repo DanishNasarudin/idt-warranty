@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Lock, X } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 type DropdownOption = {
   label: string;
@@ -36,7 +36,7 @@ type DropdownCellProps = {
   lockedBy?: string;
 };
 
-export function DropdownCell({
+function DropdownCellComponent({
   value,
   options,
   onSelect,
@@ -172,3 +172,20 @@ export function DropdownCell({
 
   return dropdownContent;
 }
+
+// Memoize to prevent unnecessary re-renders
+export const DropdownCell = memo(
+  DropdownCellComponent,
+  (prevProps, nextProps) => {
+    return (
+      prevProps.value === nextProps.value &&
+      prevProps.isLocked === nextProps.isLocked &&
+      prevProps.lockedBy === nextProps.lockedBy &&
+      prevProps.allowNull === nextProps.allowNull &&
+      prevProps.className === nextProps.className &&
+      prevProps.options.length === nextProps.options.length
+    );
+  }
+);
+
+DropdownCell.displayName = "DropdownCell";

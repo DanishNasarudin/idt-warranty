@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Lock } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 type EditableTextCellProps = {
   value: string | null;
@@ -22,7 +22,7 @@ type EditableTextCellProps = {
   lockedBy?: string;
 };
 
-export function EditableTextCell({
+function EditableTextCellComponent({
   value,
   onSave,
   isEditing,
@@ -86,13 +86,14 @@ export function EditableTextCell({
   }
 
   const cellContent = (
-    <div
+    <button
       onClick={handleClick}
+      disabled={isLocked}
       className={cn(
-        "h-full w-full rounded-sm transition-colors relative",
+        "h-full w-full rounded-sm transition-colors relative text-left py-1",
         isLocked
           ? "cursor-not-allowed bg-muted/50"
-          : "cursor-pointer hover:bg-accent/50",
+          : "cursor-pointer hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         className
       )}
     >
@@ -101,10 +102,10 @@ export function EditableTextCell({
           <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
         )}
         <span className={cn(isLocked && "text-muted-foreground")}>
-          {value || <span className="italic">Empty</span>}
+          {value || <span className="italic text-muted-foreground">Empty</span>}
         </span>
       </div>
-    </div>
+    </button>
   );
 
   if (isLocked && lockedBy) {
@@ -122,3 +123,19 @@ export function EditableTextCell({
 
   return cellContent;
 }
+
+// Memoize to prevent unnecessary re-renders
+export const EditableTextCell = memo(
+  EditableTextCellComponent,
+  (prevProps, nextProps) => {
+    return (
+      prevProps.value === nextProps.value &&
+      prevProps.isEditing === nextProps.isEditing &&
+      prevProps.isLocked === nextProps.isLocked &&
+      prevProps.lockedBy === nextProps.lockedBy &&
+      prevProps.className === nextProps.className
+    );
+  }
+);
+
+EditableTextCell.displayName = "EditableTextCell";

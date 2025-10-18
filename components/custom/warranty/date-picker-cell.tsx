@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Lock } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 type DatePickerCellProps = {
   value: Date | string | null;
@@ -26,7 +26,7 @@ type DatePickerCellProps = {
   placeholder?: string;
 };
 
-export function DatePickerCell({
+function DatePickerCellComponent({
   value,
   onSave,
   isLocked = false,
@@ -88,3 +88,26 @@ export function DatePickerCell({
     </Popover>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const DatePickerCell = memo(
+  DatePickerCellComponent,
+  (prevProps, nextProps) => {
+    // Convert dates to comparable values
+    const prevDate = prevProps.value
+      ? new Date(prevProps.value).getTime()
+      : null;
+    const nextDate = nextProps.value
+      ? new Date(nextProps.value).getTime()
+      : null;
+
+    return (
+      prevDate === nextDate &&
+      prevProps.isLocked === nextProps.isLocked &&
+      prevProps.lockedBy === nextProps.lockedBy &&
+      prevProps.placeholder === nextProps.placeholder
+    );
+  }
+);
+
+DatePickerCell.displayName = "DatePickerCell";

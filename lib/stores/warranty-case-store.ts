@@ -3,16 +3,10 @@
 import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { create } from "zustand";
 
-type EditingCell = {
-  caseId: number;
-  field: string;
-};
-
 type WarrantyCaseStore = {
   cases: WarrantyCaseWithRelations[];
   staffOptions: StaffOption[];
   expandedRows: Set<number>;
-  editingCell: EditingCell | null;
 
   // Actions
   setCases: (cases: WarrantyCaseWithRelations[]) => void;
@@ -23,7 +17,6 @@ type WarrantyCaseStore = {
   ) => void;
   deleteCase: (caseId: number) => void;
   toggleRowExpansion: (caseId: number) => void;
-  setEditingCell: (cell: EditingCell | null) => void;
 
   // Socket.io preparation - will be used for real-time updates
   handleRemoteUpdate: (
@@ -36,7 +29,6 @@ export const useWarrantyCaseStore = create<WarrantyCaseStore>((set, get) => ({
   cases: [],
   staffOptions: [],
   expandedRows: new Set(),
-  editingCell: null,
 
   setCases: (cases) => set({ cases }),
 
@@ -67,8 +59,6 @@ export const useWarrantyCaseStore = create<WarrantyCaseStore>((set, get) => ({
       }
       return { expandedRows: newExpandedRows };
     }),
-
-  setEditingCell: (cell) => set({ editingCell: cell }),
 
   handleRemoteUpdate: (caseId, updates) => {
     console.log("[Store] handleRemoteUpdate called:", { caseId, updates });
