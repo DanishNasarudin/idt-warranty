@@ -28,6 +28,9 @@ export default async function Page({ searchParams }: PageProps) {
 
   const stats = await getDashboardStats(dateRangeFilter);
 
+  // Check if there's any data
+  const hasData = stats.totals.cases > 0 || stats.staffMetrics.length > 0;
+
   return (
     <div className="container mx-auto py-6 space-y-3">
       {/* Header */}
@@ -40,6 +43,41 @@ export default async function Page({ searchParams }: PageProps) {
         </div>
         <DashboardDateFilter />
       </div>
+
+      {/* Empty State Alert */}
+      {!hasData && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center py-12 space-y-3">
+              <div className="text-muted-foreground">
+                <svg
+                  className="mx-auto h-12 w-12 text-muted-foreground/50"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold">No Data Available</h3>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                There is no warranty data to display. This could be because:
+                <br />
+                • No warranty cases have been created yet
+                <br />
+                • The database connection could not be established
+                <br />• The selected date range has no data
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Stats */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">

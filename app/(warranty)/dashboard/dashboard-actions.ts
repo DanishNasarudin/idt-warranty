@@ -80,7 +80,8 @@ export async function getStaffServiceMetrics(dateRange: DateRangeFilter) {
     );
   } catch (error) {
     console.error("Error fetching staff metrics:", error);
-    throw new Error("Failed to fetch staff service metrics");
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -140,7 +141,8 @@ export async function getBranchStatusCounts(dateRange: DateRangeFilter) {
     return branchStats;
   } catch (error) {
     console.error("Error fetching branch status counts:", error);
-    throw new Error("Failed to fetch branch status counts");
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -239,7 +241,8 @@ export async function getAllBranchTransferStats(dateRange: DateRangeFilter) {
     }));
   } catch (error) {
     console.error("Error fetching transfer stats:", error);
-    throw new Error("Failed to fetch branch transfer statistics");
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -324,7 +327,8 @@ export async function getStaffPerformanceByBranch(dateRange: DateRangeFilter) {
     return branchPerformance;
   } catch (error) {
     console.error("Error fetching staff performance by branch:", error);
-    throw new Error("Failed to fetch staff performance by branch");
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -367,7 +371,8 @@ export async function getBranchCaseSummary(dateRange: DateRangeFilter) {
     return branchesWithCounts;
   } catch (error) {
     console.error("Error fetching branch case summary:", error);
-    throw new Error("Failed to fetch branch case summary");
+    // Return empty array instead of throwing
+    return [];
   }
 }
 
@@ -412,6 +417,17 @@ export async function getDashboardStats(
     };
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
-    throw new Error("Failed to fetch dashboard statistics");
+    // Return empty data structure instead of throwing
+    return {
+      staffMetrics: [],
+      branchStatusCounts: [],
+      transferStats: [],
+      caseSummary: [],
+      staffPerformanceByBranch: [],
+      totals: {
+        cases: 0,
+        staffServices: 0,
+      },
+    };
   }
 }
