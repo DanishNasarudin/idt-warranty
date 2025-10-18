@@ -155,7 +155,9 @@ export function BranchManagement({
     // Verify confirmation text
     const expectedText = `Yes I want to delete branch ${deletingBranch.name}`;
     if (deleteConfirmationText !== expectedText) {
-      toast.error("Confirmation text does not match. Please type exactly as shown.");
+      toast.error(
+        "Confirmation text does not match. Please type exactly as shown."
+      );
       return;
     }
 
@@ -463,7 +465,9 @@ export function BranchManagement({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Branch - Confirmation Required</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete Branch - Confirmation Required
+            </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <span className="block">
                 You are about to permanently delete the branch &quot;
@@ -472,7 +476,7 @@ export function BranchManagement({
                 </span>
                 &quot;.
               </span>
-              
+
               {deletingBranch &&
                 (deletingBranch._count.staff > 0 ||
                   deletingBranch._count.cases > 0) && (
@@ -482,15 +486,20 @@ export function BranchManagement({
                     </span>
                     <ul className="list-disc list-inside space-y-1 text-sm text-destructive/90">
                       {deletingBranch._count.staff > 0 && (
-                        <li>{deletingBranch._count.staff} staff assignment(s)</li>
+                        <li>
+                          {deletingBranch._count.staff} staff assignment(s)
+                        </li>
                       )}
                       {deletingBranch._count.cases > 0 && (
-                        <li>{deletingBranch._count.cases} warranty case(s) and all related data</li>
+                        <li>
+                          {deletingBranch._count.cases} warranty case(s) and all
+                          related data
+                        </li>
                       )}
                     </ul>
                   </span>
                 )}
-              
+
               <span className="block pt-2">
                 To confirm, please type exactly:{" "}
                 <span className="block mt-2 p-2 bg-muted rounded font-mono text-sm font-semibold text-foreground">
