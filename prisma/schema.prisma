@@ -27,13 +27,23 @@ enum ChangeType {
   DELETE
 }
 
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
 model Branch {
   id   Int    @id @default(autoincrement())
   code String @unique @db.VarChar(16) // e.g. 'AP','JB','S2','SA','PN'
   name String @db.VarChar(64)
 
-  cases WarrantyCase[]
-  staff StaffOnBranch[]
+  cases         WarrantyCase[]
+  originCases   WarrantyCase[]  @relation("OriginBranch")
+  staff         StaffOnBranch[]
+  transfersFrom CaseTransfer[]  @relation("TransferFromBranch")
+  transfersTo   CaseTransfer[]  @relation("TransferToBranch")
 
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
@@ -55,9 +65,10 @@ model Staff {
 
   branches StaffOnBranch[]
 
-  receivedCases   WarrantyCase[]    @relation("ReceivedByStaff")
-  servicedCases   WarrantyCase[]    @relation("ServicedByStaff")
-  changeHistories WarrantyHistory[]
+  receivedCases    WarrantyCase[]    @relation("ReceivedByStaff")
+  servicedCases    WarrantyCase[]    @relation("ServicedByStaff")
+  changeHistories  WarrantyHistory[]
+  transferredCases CaseTransfer[]    @relation("TransferredByStaff")
 
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
@@ -86,6 +97,10 @@ model WarrantyCase {
   branch   Branch    @relation(fields: [branchId], references: [id], onUpdate: Cascade)
   scope    CaseScope @relation(fields: [scopeId], references: [id], onUpdate: Cascade)
 
+  // Track the original branch where this case was first created
+  originBranchId Int?
+  originBranch   Branch? @relation("OriginBranch", fields: [originBranchId], references: [id], onUpdate: SetNull, onDelete: SetNull)
+
   status CaseStatus @default(IN_QUEUE)
 
   customerName    String?   @db.VarChar(100)
@@ -109,8 +124,9 @@ model WarrantyCase {
   servicedByStaffId Int?
   servicedBy        Staff? @relation("ServicedByStaff", fields: [servicedByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)
 
-  history WarrantyHistory[]
-  files   WarrantyCaseFile[]
+  history   WarrantyHistory[]
+  files     WarrantyCaseFile[]
+  transfers CaseTransfer[]
 
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
@@ -120,6 +136,7 @@ model WarrantyCase {
   @@index([branchId, status, createdAt], name: "ix_branch_status_createdAt")
   @@index([customerEmail], name: "ix_customerEmail")
   @@index([serviceNo], name: "ix_serviceNo")
+  @@index([originBranchId], name: "ix_originBranchId")
   // Fulltext search (MySQL 5.7+/8.0+)
   @@fulltext([issues, solutions], map: "ft_issues_solutions")
 }
@@ -170,4 +187,40 @@ model WarrantyCaseFile {
 
   @@id([caseId, fileId])
   @@index([fileId])
+}
+
+model CaseTransfer {
+  id Int @id @default(autoincrement())
+
+  caseId Int
+  case   WarrantyCase @relation(fields: [caseId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  fromBranchId Int
+  fromBranch   Branch @relation("TransferFromBranch", fields: [fromBranchId], references: [id], onUpdate: Cascade)
+
+  toBranchId Int
+  toBranch   Branch @relation("TransferToBranch", fields: [toBranchId], references: [id], onUpdate: Cascade)
+
+  transferredByStaffId Int?
+  transferredBy        Staff? @relation("TransferredByStaff", fields: [transferredByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)
+
+  status TransferStatus @default(PENDING)
+
+  // Optional: Reason for transfer
+  reason String? @db.Text
+
+  // Optional: Notes or remarks about the transfer
+  notes String? @db.Text
+
+  transferredAt DateTime  @default(now()) @db.DateTime(3)
+  acceptedAt    DateTime? @db.DateTime(3)
+  completedAt   DateTime? @db.DateTime(3)
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+
+  @@index([caseId], name: "ix_caseId")
+  @@index([fromBranchId, toBranchId], name: "ix_from_to_branch")
+  @@index([status], name: "ix_status")
+  @@index([transferredAt], name: "ix_transferredAt")
 }

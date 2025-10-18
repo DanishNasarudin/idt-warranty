@@ -1,10 +1,11 @@
-import { CaseStatus } from "@/lib/generated/prisma";
+import { CaseStatus, TransferStatus } from "@/lib/generated/prisma";
 
 export type WarrantyCaseWithRelations = {
   id: number;
   serviceNo: string;
   branchId: number;
   scopeId: number;
+  originBranchId: number | null;
   status: CaseStatus;
   customerName: string | null;
   customerContact: string | null;
@@ -44,6 +45,11 @@ export type WarrantyCaseWithRelations = {
     id: number;
     code: string;
   };
+  originBranch?: {
+    id: number;
+    code: string;
+    name: string;
+  } | null;
 };
 
 export type WarrantyCaseUpdate = Partial<
@@ -63,4 +69,78 @@ export type StaffOption = {
   id: number;
   name: string;
   color: string | null;
+};
+
+export type CaseTransferWithRelations = {
+  id: number;
+  caseId: number;
+  fromBranchId: number;
+  toBranchId: number;
+  transferredByStaffId: number | null;
+  status: TransferStatus;
+  reason: string | null;
+  notes: string | null;
+  transferredAt: Date;
+  acceptedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  fromBranch: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  toBranch: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  transferredBy: {
+    id: number;
+    name: string;
+    color: string | null;
+  } | null;
+  case?: {
+    id: number;
+    serviceNo: string;
+    customerName: string | null;
+    status: CaseStatus;
+  };
+};
+
+export type BranchTransferStats = {
+  branchId: number;
+  totalCases: number;
+  sent: {
+    total: number;
+    breakdown: {
+      branch:
+        | {
+            id: number;
+            code: string;
+            name: string;
+          }
+        | undefined;
+      count: number;
+    }[];
+  };
+  received: {
+    total: number;
+    breakdown: {
+      branch:
+        | {
+            id: number;
+            code: string;
+            name: string;
+          }
+        | undefined;
+      count: number;
+    }[];
+  };
+};
+
+export type BranchOption = {
+  id: number;
+  code: string;
+  name: string;
 };

@@ -97,6 +97,13 @@ export async function getWarrantyCasesByBranch(
             code: true,
           },
         },
+        originBranch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
       },
       orderBy,
     });
@@ -300,6 +307,7 @@ export async function createWarrantyCase(
         serviceNo,
         branchId,
         scopeId: defaultScope.id,
+        originBranchId: branchId, // Set origin branch when creating new case
         customerName: data.customerName,
         customerContact: data.customerContact || null,
         customerEmail: data.customerEmail || null,
@@ -341,6 +349,13 @@ export async function createWarrantyCase(
           select: {
             id: true,
             code: true,
+          },
+        },
+        originBranch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
           },
         },
       },

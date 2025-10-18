@@ -49,6 +49,14 @@ export type SSEMessage =
   | {
       type: "heartbeat";
       data: { timestamp: number };
+    }
+  | {
+      type: "case-transferred-out";
+      data: { caseId: number; toBranchId: number; transferId: number };
+    }
+  | {
+      type: "case-transferred-in";
+      data: { caseId: number; fromBranchId: number; transferId: number };
     };
 
 export type SSEConnection = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { deleteWarrantyCase } from "@/app/branch/[id]/actions";
+import { getAvailableTransferBranches } from "@/app/branch/[id]/transfer-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,13 +25,15 @@ import {
 } from "@/components/ui/tooltip";
 import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing-store";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
-import { WarrantyCaseWithRelations } from "@/lib/types/warranty";
+import { BranchOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { cn } from "@/lib/utils";
-import { Lock, Trash2 } from "lucide-react";
+import { ArrowRightLeft, History, Lock, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PrintPDFButton } from "./print-pdf-button";
 import { SendEmailButton } from "./send-email-button";
+import { TransferCaseDialog } from "./transfer-case-dialog";
+import { TransferHistoryDialog } from "./transfer-history-dialog";
 
 type ExpandableRowDetailsProps = {
   case_: WarrantyCaseWithRelations;
@@ -37,6 +41,7 @@ type ExpandableRowDetailsProps = {
   onAcquireFieldLock?: (caseId: number, field: string) => Promise<boolean>;
   onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
   userId?: string;
+  staffId?: number;
 };
 
 export function ExpandableRowDetails({
@@ -45,6 +50,7 @@ export function ExpandableRowDetails({
   onAcquireFieldLock,
   onReleaseFieldLock,
   userId = "",
+  staffId,
 }: ExpandableRowDetailsProps) {
   const [localData, setLocalData] = useState({
     customerEmail: case_.customerEmail || "",
@@ -63,8 +69,26 @@ export function ExpandableRowDetails({
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [availableBranches, setAvailableBranches] = useState<BranchOption[]>(
+    []
+  );
   const deleteCase = useWarrantyCaseStore((state) => state.deleteCase);
   const { isFieldLocked, fieldLocks } = useCollaborativeEditingStore();
+
+  // Load available branches for transfer
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const branches = await getAvailableTransferBranches(case_.branchId);
+        setAvailableBranches(branches);
+      } catch (error) {
+        console.error("Failed to load branches:", error);
+      }
+    };
+    loadBranches();
+  }, [case_.branchId]);
 
   // Sync local data with case_ prop changes (from real-time updates)
   // but only update fields that are not currently being edited (not focused)
@@ -195,8 +219,40 @@ export function ExpandableRowDetails({
           <h3 className="text-sm font-semibold text-muted-foreground">
             Case Actions
           </h3>
+          {/* Show transfer indicator if case was transferred */}
+          {case_.originBranchId &&
+            case_.originBranchId !== case_.branchId &&
+            case_.originBranch && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <ArrowRightLeft className="h-3 w-3" />
+                From {case_.originBranch.name}
+              </Badge>
+            )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Transfer Case Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransferDialog(true)}
+            className="gap-2"
+            disabled={availableBranches.length === 0}
+          >
+            <ArrowRightLeft className="h-4 w-4" />
+            Transfer
+          </Button>
+
+          {/* Transfer History Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowHistoryDialog(true)}
+            className="gap-2"
+          >
+            <History className="h-4 w-4" />
+            History
+          </Button>
+
           {/* Print PDF Button */}
           <PrintPDFButton case_={case_} />
 
@@ -302,6 +358,29 @@ export function ExpandableRowDetails({
           );
         })}
       </div>
+
+      {/* Transfer Dialogs */}
+      <TransferCaseDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        caseId={case_.id}
+        currentBranchId={case_.branchId}
+        currentBranchName={case_.branch.name}
+        serviceNo={case_.serviceNo}
+        availableBranches={availableBranches}
+        staffId={staffId}
+        onTransferComplete={() => {
+          // Optionally refresh the page or update local state
+          window.location.reload();
+        }}
+      />
+
+      <TransferHistoryDialog
+        open={showHistoryDialog}
+        onOpenChange={setShowHistoryDialog}
+        caseId={case_.id}
+        serviceNo={case_.serviceNo}
+      />
     </div>
   );
 }

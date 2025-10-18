@@ -4,5 +4,8 @@ export { EditableTextCell } from "./editable-text-cell";
 export { ExpandableRowDetails } from "./expandable-row-details";
 export { TablePagination } from "./table-pagination";
 export { TableToolbar } from "./table-toolbar";
+export { TransferCaseDialog } from "./transfer-case-dialog";
+export { TransferHistoryDialog } from "./transfer-history-dialog";
+export { TransferStatsCard } from "./transfer-stats-card";
 export { WarrantyCaseTable } from "./warranty-case-table";
 export { WarrantyCaseTableWrapper } from "./warranty-case-table-wrapper";
