@@ -67,6 +67,7 @@ type CollaborativeEditingState = {
   getOptimisticValue: (caseId: number, field: string) => any;
 
   setServerData: (caseId: number, data: WarrantyCaseWithRelations) => void;
+  batchSetServerData: (cases: WarrantyCaseWithRelations[]) => void;
   updateServerData: (
     caseId: number,
     updates: Partial<WarrantyCaseWithRelations>
@@ -274,6 +275,16 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
       set((state) => {
         const newServerData = new Map(state.serverData);
         newServerData.set(caseId, data);
+        return { serverData: newServerData };
+      });
+    },
+
+    batchSetServerData: (cases) => {
+      set((state) => {
+        const newServerData = new Map(state.serverData);
+        cases.forEach((case_) => {
+          newServerData.set(case_.id, case_);
+        });
         return { serverData: newServerData };
       });
     },

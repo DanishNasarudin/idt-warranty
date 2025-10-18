@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
 import { Check, CloudUpload, RefreshCw } from "lucide-react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import {
   CreateWarrantyCaseDialog,
@@ -78,8 +79,8 @@ export function WarrantyCaseTableWrapper({
     }
   };
 
-  // Determine status display based on saving status
-  const getStatusDisplay = () => {
+  // Memoize status display to prevent recalculation on every render
+  const statusDisplay = useMemo(() => {
     switch (savingStatus) {
       case "saving":
         return {
@@ -105,9 +106,7 @@ export function WarrantyCaseTableWrapper({
       default:
         return null;
     }
-  };
-
-  const statusDisplay = getStatusDisplay();
+  }, [savingStatus]);
 
   return (
     <div className="space-y-4">

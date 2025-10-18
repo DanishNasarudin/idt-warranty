@@ -20,7 +20,7 @@ import {
   getStatusLabel,
 } from "@/lib/utils/status-colors";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Fragment, useEffect } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef } from "react";
 import { StaffBadge } from "../staff-badge";
 import { DatePickerCell } from "./date-picker-cell";
 import { DropdownCell } from "./dropdown-cell";
@@ -89,106 +89,161 @@ export function WarrantyCaseTable({
     setEditingCell,
   } = useWarrantyCaseStore();
 
-  const { isFieldLocked, getDisplayValue, fieldLocks } =
-    useCollaborativeEditingStore();
+  // Only subscribe to optimisticUpdates, not the entire store
+  const optimisticUpdates = useCollaborativeEditingStore(
+    (state) => state.optimisticUpdates
+  );
+  const isFieldLocked = useCollaborativeEditingStore(
+    (state) => state.isFieldLocked
+  );
+  const fieldLocks = useCollaborativeEditingStore((state) => state.fieldLocks);
 
+  // Use refs to track previous values to prevent unnecessary updates
+  const prevCasesRef = useRef<WarrantyCaseWithRelations[]>([]);
+  const prevStaffRef = useRef<StaffOption[]>([]);
+
+  // Only update cases if they actually changed (deep comparison by ID and updatedAt)
   useEffect(() => {
-    setCases(initialCases);
-  }, [initialCases, setCases]);
+    const hasChanged =
+      initialCases.length !== prevCasesRef.current.length ||
+      initialCases.some((newCase, idx) => {
+        const oldCase = prevCasesRef.current[idx];
+        return (
+          !oldCase ||
+          newCase.id !== oldCase.id ||
+          newCase.updatedAt?.getTime() !== oldCase.updatedAt?.getTime()
+        );
+      });
 
+    if (hasChanged) {
+      setCases(initialCases);
+      prevCasesRef.current = initialCases;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCases]);
+
+  // Only update staff if they actually changed
   useEffect(() => {
-    setStaffOptions(initialStaff);
-  }, [initialStaff, setStaffOptions]);
+    const hasChanged =
+      initialStaff.length !== prevStaffRef.current.length ||
+      initialStaff.some((staff, idx) => {
+        const oldStaff = prevStaffRef.current[idx];
+        return !oldStaff || staff.id !== oldStaff.id;
+      });
 
-  // Display cases with optimistic updates merged in
-  const displayedCases = cases.map((case_) => {
-    const optimisticData = getDisplayValue(case_.id);
-    return { ...case_, ...optimisticData };
-  });
-
-  const handleUpdate = async (caseId: number, field: string, value: any) => {
-    // Optimistic update - immediate UI feedback
-    updateCase(caseId, { [field]: value });
-
-    // Use debounced update if available
-    if (onUpdateField) {
-      await onUpdateField(caseId, field, value);
-      return;
+    if (hasChanged) {
+      setStaffOptions(initialStaff);
+      prevStaffRef.current = initialStaff;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStaff]);
 
-    // Fallback to immediate update
-    try {
-      await onUpdateCase(caseId, { [field]: value });
-    } catch (error) {
-      console.error("Failed to update case:", error);
-      // Revert optimistic update on error
-      const originalCase = cases.find((c) => c.id === caseId);
-      if (originalCase) {
-        updateCase(caseId, {
-          [field]: originalCase[field as keyof WarrantyCaseWithRelations],
-        });
+  // Memoize displayedCases to prevent recalculation on every render
+  const displayedCases = useMemo(() => {
+    return cases.map((case_) => {
+      const optimisticData = optimisticUpdates.get(case_.id) || {};
+      return { ...case_, ...optimisticData };
+    });
+  }, [cases, optimisticUpdates]);
+
+  const handleUpdate = useCallback(
+    async (caseId: number, field: string, value: any) => {
+      // Optimistic update - immediate UI feedback
+      updateCase(caseId, { [field]: value });
+
+      // Use debounced update if available
+      if (onUpdateField) {
+        await onUpdateField(caseId, field, value);
+        return;
       }
-    }
-  };
 
-  const handleEditStart = async (caseId: number, field: string) => {
-    // Try to acquire lock if locking is enabled
-    if (onAcquireFieldLock) {
-      const acquired = await onAcquireFieldLock(caseId, field);
-      if (!acquired) {
-        return; // Lock acquisition failed
+      // Fallback to immediate update
+      try {
+        await onUpdateCase(caseId, { [field]: value });
+      } catch (error) {
+        console.error("Failed to update case:", error);
+        // Revert optimistic update on error
+        const originalCase = cases.find((c) => c.id === caseId);
+        if (originalCase) {
+          updateCase(caseId, {
+            [field]: originalCase[field as keyof WarrantyCaseWithRelations],
+          });
+        }
       }
-    }
+    },
+    [updateCase, onUpdateField, onUpdateCase, cases]
+  );
 
-    setEditingCell({ caseId, field });
-  };
+  const handleEditStart = useCallback(
+    async (caseId: number, field: string) => {
+      // Try to acquire lock if locking is enabled
+      if (onAcquireFieldLock) {
+        const acquired = await onAcquireFieldLock(caseId, field);
+        if (!acquired) {
+          return; // Lock acquisition failed
+        }
+      }
 
-  const handleEditEnd = async (caseId: number, field: string) => {
-    setEditingCell(null);
+      setEditingCell({ caseId, field });
+    },
+    [onAcquireFieldLock, setEditingCell]
+  );
 
-    // Release lock if locking is enabled
-    if (onReleaseFieldLock) {
-      await onReleaseFieldLock(caseId, field);
-    }
-  };
+  const handleEditEnd = useCallback(
+    async (caseId: number, field: string) => {
+      setEditingCell(null);
 
-  const getFieldLockStatus = (caseId: number, field: string) => {
-    if (!userId) return { isLocked: false, lockedBy: undefined };
+      // Release lock if locking is enabled
+      if (onReleaseFieldLock) {
+        await onReleaseFieldLock(caseId, field);
+      }
+    },
+    [onReleaseFieldLock, setEditingCell]
+  );
 
-    const lock = isFieldLocked(caseId, field, userId);
-    const status = {
-      isLocked: lock !== null,
-      lockedBy: lock?.userName,
-    };
+  const getFieldLockStatus = useCallback(
+    (caseId: number, field: string) => {
+      if (!userId) return { isLocked: false, lockedBy: undefined };
 
-    // Debug logging
-    if (lock) {
-      console.log(`[Lock Status] Case ${caseId}, Field ${field}:`, status);
-    }
+      const lock = isFieldLocked(caseId, field, userId);
+      const status = {
+        isLocked: lock !== null,
+        lockedBy: lock?.userName,
+      };
 
-    return status;
-  };
+      // Debug logging
+      if (lock) {
+        console.log(`[Lock Status] Case ${caseId}, Field ${field}:`, status);
+      }
 
-  const handleMultiFieldUpdate = async (
-    caseId: number,
-    updates: Partial<WarrantyCaseWithRelations>
-  ) => {
-    // Optimistic update
-    updateCase(caseId, updates);
+      return status;
+    },
+    [userId, isFieldLocked]
+  );
 
-    try {
-      await onUpdateCase(caseId, updates);
-    } catch (error) {
-      console.error("Failed to update case:", error);
-    }
-  };
+  const handleMultiFieldUpdate = useCallback(
+    async (caseId: number, updates: Partial<WarrantyCaseWithRelations>) => {
+      // Optimistic update
+      updateCase(caseId, updates);
 
-  const getStaffBadge = (staffId: number | null) => {
-    if (!staffId) return null;
-    const staff = staffOptions.find((s) => s.id === staffId);
-    if (!staff) return null;
-    return <StaffBadge name={staff.name} color={staff.color} />;
-  };
+      try {
+        await onUpdateCase(caseId, updates);
+      } catch (error) {
+        console.error("Failed to update case:", error);
+      }
+    },
+    [updateCase, onUpdateCase]
+  );
+
+  const getStaffBadge = useCallback(
+    (staffId: number | null) => {
+      if (!staffId) return null;
+      const staff = staffOptions.find((s) => s.id === staffId);
+      if (!staff) return null;
+      return <StaffBadge name={staff.name} color={staff.color} />;
+    },
+    [staffOptions]
+  );
 
   return (
     <div className="rounded-md border overflow-hidden">

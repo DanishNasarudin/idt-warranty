@@ -82,8 +82,11 @@ export function ExpandableRowDetails({
   const deleteCase = useWarrantyCaseStore((state) => state.deleteCase);
   const { isFieldLocked, fieldLocks } = useCollaborativeEditingStore();
 
-  // Load available branches for transfer
+  // Load available branches for transfer ONLY when transfer dialog is opened
+  // This prevents 10 unnecessary server action calls on every row mount (one per row)
   useEffect(() => {
+    if (!showTransferDialog) return; // Only load when actually needed
+
     const loadBranches = async () => {
       try {
         const branches = await getAvailableTransferBranches(case_.branchId);
@@ -93,7 +96,7 @@ export function ExpandableRowDetails({
       }
     };
     loadBranches();
-  }, [case_.branchId]);
+  }, [showTransferDialog, case_.branchId]); // Trigger when dialog opens
 
   // Sync local data with case_ prop changes (from real-time updates)
   // but only update fields that are not currently being edited (not focused)

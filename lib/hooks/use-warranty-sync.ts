@@ -10,7 +10,7 @@ import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRealtimeUpdates } from "./use-realtime-updates";
 
@@ -55,9 +55,11 @@ export function useWarrantySync({
 }: UseWarrantySyncOptions): UseWarrantySyncReturn {
   const [savingStatus, setSavingStatus] = useState<SavingStatus>("synced");
   const [fadeOut, setFadeOut] = useState(false);
+  const initializedRef = useRef(false);
 
   const {
     setServerData,
+    batchSetServerData,
     updateServerData,
     scheduleUpdate,
     startEditing,
@@ -112,12 +114,13 @@ export function useWarrantySync({
     }
   }, [savingStatus]);
 
-  // Initialize server data
+  // Initialize server data only once (batched to prevent multiple renders)
   useEffect(() => {
-    initialCases.forEach((case_) => {
-      setServerData(case_.id, case_);
-    });
-  }, [initialCases, setServerData]);
+    if (!initializedRef.current && initialCases.length > 0) {
+      batchSetServerData(initialCases);
+      initializedRef.current = true;
+    }
+  }, [initialCases, batchSetServerData]);
 
   // Handle real-time updates from other users
   const handleCaseUpdate = useCallback(
