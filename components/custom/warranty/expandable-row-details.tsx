@@ -27,7 +27,13 @@ import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import { BranchOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { cn } from "@/lib/utils";
-import { ArrowRightLeft, History, Lock, Trash2 } from "lucide-react";
+import {
+  ArrowRightLeft,
+  History,
+  Lock,
+  MessageCircle,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ImageList } from "./image-list";
@@ -245,6 +251,46 @@ export function ExpandableRowDetails({
                 )}
             </div>
             <div className="flex items-center gap-2">
+              {/* WhatsApp Contact Button */}
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (case_.customerContact) {
+                          // Format phone number: remove spaces, dashes, and ensure it starts with country code
+                          let phoneNumber = case_.customerContact.replace(
+                            /[\s-]/g,
+                            ""
+                          );
+
+                          // If the number doesn't start with '+' or country code, you might want to add one
+                          // For Malaysia, add '60' if it starts with '0'
+                          if (phoneNumber.startsWith("0")) {
+                            phoneNumber = "60" + phoneNumber.substring(1);
+                          }
+
+                          // Open WhatsApp with the formatted number
+                          window.open(`https://wa.me/${phoneNumber}`, "_blank");
+                        }
+                      }}
+                      className="gap-2"
+                      disabled={!case_.customerContact}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                  </TooltipTrigger>
+                  {!case_.customerContact && (
+                    <TooltipContent side="top" className="text-xs">
+                      <p>No contact number available</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
               {/* Transfer Case Button */}
               <Button
                 variant="outline"

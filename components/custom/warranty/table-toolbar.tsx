@@ -23,8 +23,8 @@ const SEARCH_FIELD_OPTIONS = [
 ];
 
 const SORT_FIELD_OPTIONS = [
-  { label: "Date Created", value: "createdAt" as const },
-  { label: "Last Updated", value: "updatedAt" as const },
+  { label: "Date", value: "createdAt" as const },
+  // { label: "Last Updated", value: "updatedAt" as const },
   { label: "Service No", value: "serviceNo" as const },
   { label: "Customer Name", value: "customerName" as const },
   { label: "Status", value: "status" as const },
@@ -167,12 +167,14 @@ export function TableToolbar({ filters }: TableToolbarProps) {
           <SelectContent>
             {SEARCH_FIELD_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                By: {option.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+
+      <div className="border-l border h-[20px]"></div>
 
       <div className="flex items-center gap-2">
         {/* Sort Field */}
@@ -187,7 +189,7 @@ export function TableToolbar({ filters }: TableToolbarProps) {
           <SelectContent>
             {SORT_FIELD_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                Sort: {option.label}
               </SelectItem>
             ))}
           </SelectContent>
