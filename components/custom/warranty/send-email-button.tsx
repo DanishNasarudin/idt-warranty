@@ -63,17 +63,12 @@ export function SendEmailButton({ case_ }: SendEmailButtonProps) {
     }
   };
 
-  // Only show button if customer email is available
-  if (!case_.customerEmail) {
-    return null;
-  }
-
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleSendEmail}
-      disabled={isSending}
+      disabled={isSending || !case_.customerEmail}
       className="gap-2"
     >
       <Mail className="h-4 w-4" />
