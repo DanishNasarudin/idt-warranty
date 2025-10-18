@@ -42,6 +42,19 @@ export function useRealtimeUpdates({
   const maxReconnectAttempts = 10;
   const baseReconnectDelay = 1000; // 1 second
 
+  // Use refs to store callbacks to prevent reconnections when they change
+  const onCaseUpdateRef = useRef(onCaseUpdate);
+  const onSyncRequiredRef = useRef(onSyncRequired);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onCaseUpdateRef.current = onCaseUpdate;
+  }, [onCaseUpdate]);
+
+  useEffect(() => {
+    onSyncRequiredRef.current = onSyncRequired;
+  }, [onSyncRequired]);
+
   const { setFieldLock, removeFieldLock, updateServerData, isEditing } =
     useCollaborativeEditingStore();
 
@@ -95,7 +108,7 @@ export function useRealtimeUpdates({
             // Update server data (but not optimistic updates)
             if (Object.keys(filteredUpdates).length > 0) {
               updateServerData(caseId, filteredUpdates);
-              onCaseUpdate?.(caseId, filteredUpdates);
+              onCaseUpdateRef.current?.(caseId, filteredUpdates);
               console.log("[SSE] Applied updates to store");
             } else {
               console.log("[SSE] No updates applied - all fields being edited");
@@ -105,7 +118,7 @@ export function useRealtimeUpdates({
 
           case "sync-required":
             console.log("[SSE] Sync required:", message.data);
-            onSyncRequired?.(message.data.caseId);
+            onSyncRequiredRef.current?.(message.data.caseId);
             break;
 
           case "heartbeat":
@@ -119,14 +132,7 @@ export function useRealtimeUpdates({
         console.error("[SSE] Failed to parse message:", error);
       }
     },
-    [
-      setFieldLock,
-      removeFieldLock,
-      updateServerData,
-      isEditing,
-      onCaseUpdate,
-      onSyncRequired,
-    ]
+    [setFieldLock, removeFieldLock, updateServerData, isEditing]
   );
 
   // Connect to SSE endpoint
@@ -199,14 +205,15 @@ export function useRealtimeUpdates({
     }
 
     syncIntervalRef.current = setInterval(() => {
-      if (onSyncRequired) {
+      if (onSyncRequiredRef.current) {
         console.log("[SSE] Periodic sync triggered");
-        onSyncRequired(-1); // -1 indicates full sync
+        onSyncRequiredRef.current(-1); // -1 indicates full sync
       }
     }, syncIntervalMs);
-  }, [onSyncRequired, syncIntervalMs]);
+  }, [syncIntervalMs]);
 
   // Connect on mount, disconnect on unmount
+  // Only reconnect when branchId or userId changes, not on every render
   useEffect(() => {
     if (enabled) {
       connect();
@@ -216,7 +223,8 @@ export function useRealtimeUpdates({
     return () => {
       disconnect();
     };
-  }, [enabled, connect, disconnect, startPeriodicSync]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, branchId, userId]); // Only depend on values that should trigger reconnection
 
   // Handle visibility change (page focus/blur)
   useEffect(() => {
@@ -233,8 +241,8 @@ export function useRealtimeUpdates({
           connect();
         }
         // Trigger a sync when page becomes visible
-        if (onSyncRequired) {
-          onSyncRequired(-1);
+        if (onSyncRequiredRef.current) {
+          onSyncRequiredRef.current(-1);
         }
       }
     };
@@ -244,7 +252,8 @@ export function useRealtimeUpdates({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [enabled, isConnected, connect, onSyncRequired]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isConnected]); // connect is stable due to useCallback memoization
 
   return {
     isConnected,
