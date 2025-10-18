@@ -47,7 +47,6 @@ export function WarrantyCaseTable({
   onUpdateCase,
 }: WarrantyCaseTableProps) {
   const {
-    cases,
     staffOptions,
     expandedRows,
     editingCell,
@@ -56,6 +55,7 @@ export function WarrantyCaseTable({
     updateCase,
     toggleRowExpansion,
     setEditingCell,
+    getPaginatedCases,
   } = useWarrantyCaseStore();
 
   useEffect(() => {
@@ -65,6 +65,9 @@ export function WarrantyCaseTable({
   useEffect(() => {
     setStaffOptions(initialStaff);
   }, [initialStaff, setStaffOptions]);
+
+  // Use paginated cases instead of all cases
+  const displayedCases = getPaginatedCases();
 
   const handleUpdate = async (caseId: number, field: string, value: any) => {
     // Optimistic update
@@ -128,7 +131,7 @@ export function WarrantyCaseTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {cases.length === 0 ? (
+          {displayedCases.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={9}
@@ -138,7 +141,7 @@ export function WarrantyCaseTable({
               </TableCell>
             </TableRow>
           ) : (
-            cases.map((case_) => {
+            displayedCases.map((case_) => {
               const isExpanded = expandedRows.has(case_.id);
 
               return (

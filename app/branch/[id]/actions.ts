@@ -137,3 +137,127 @@ export async function createWarrantyHistory(
     throw new Error("Failed to create warranty history");
   }
 }
+
+export async function getBranch(branchId: number) {
+  try {
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+    });
+
+    return branch;
+  } catch (error) {
+    console.error("Error fetching branch details:", error);
+    throw new Error("Failed to fetch branch details");
+  }
+}
+
+export async function createWarrantyCase(
+  branchId: number,
+  data: {
+    serviceNo: string;
+    customerName: string;
+    customerContact?: string;
+    customerEmail?: string;
+    address?: string;
+    purchaseDate?: string;
+    invoice?: string;
+    receivedItems?: string;
+    pin?: string;
+    issues?: string;
+    receivedByStaffId?: number;
+    locker?: number;
+    idtPc?: boolean;
+  }
+): Promise<WarrantyCaseWithRelations> {
+  try {
+    // Validate required fields
+    if (!data.serviceNo || !data.customerName) {
+      throw new Error("Service number and customer name are required");
+    }
+
+    // Get default scope (you might want to make this configurable)
+    const defaultScope = await prisma.caseScope.findFirst({
+      orderBy: { id: "asc" },
+    });
+
+    if (!defaultScope) {
+      throw new Error("No scope found. Please set up scopes first.");
+    }
+
+    // Create the warranty case
+    const newCase = await prisma.warrantyCase.create({
+      data: {
+        serviceNo: data.serviceNo,
+        branchId,
+        scopeId: defaultScope.id,
+        customerName: data.customerName,
+        customerContact: data.customerContact || null,
+        customerEmail: data.customerEmail || null,
+        address: data.address || null,
+        purchaseDate: data.purchaseDate ? new Date(data.purchaseDate) : null,
+        invoice: data.invoice || null,
+        receivedItems: data.receivedItems || null,
+        pin: data.pin || null,
+        issues: data.issues || null,
+        receivedByStaffId: data.receivedByStaffId || null,
+        locker: data.locker || null,
+        idtPc: data.idtPc ?? null,
+        status: "IN_QUEUE",
+        cost: 0,
+      },
+      include: {
+        receivedBy: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        servicedBy: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+        branch: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
+        scope: {
+          select: {
+            id: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    // Create history entry
+    await createWarrantyHistory(newCase.id, "INSERT");
+
+    // Revalidate the page to reflect changes
+    revalidatePath(`/branch/${branchId}`);
+
+    // Convert Decimal to number for serialization
+    return {
+      ...newCase,
+      cost: Number(newCase.cost),
+    } as WarrantyCaseWithRelations;
+  } catch (error: any) {
+    console.error("Error creating warranty case:", error);
+    
+    // Handle unique constraint violation
+    if (error.code === "P2002") {
+      throw new Error(
+        "A warranty case with this service number already exists in this branch and scope"
+      );
+    }
+    
+    throw new Error(error.message || "Failed to create warranty case");
+  }
+}
+
