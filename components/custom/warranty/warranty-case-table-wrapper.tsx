@@ -21,6 +21,7 @@ import { WarrantyCaseTable } from "./warranty-case-table";
 
 type WarrantyCaseTableWrapperProps = {
   initialCases: WarrantyCaseWithRelations[];
+  totalCount: number;
   initialStaff: StaffOption[];
   branchId: number;
   filters: WarrantyCaseFilters;
@@ -30,6 +31,7 @@ type WarrantyCaseTableWrapperProps = {
 
 export function WarrantyCaseTableWrapper({
   initialCases,
+  totalCount,
   initialStaff,
   branchId,
   filters,
@@ -164,7 +166,7 @@ export function WarrantyCaseTableWrapper({
       />
 
       {/* Pagination */}
-      <TablePagination filters={filters} totalCases={initialCases.length} />
+      <TablePagination filters={filters} totalCases={totalCount} />
     </div>
   );
 }

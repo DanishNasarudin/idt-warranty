@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { DateRangePreset } from "@/lib/types/search-params";
 import { cn } from "@/lib/utils";
+import { parseDateRangePreset } from "@/lib/utils/search-params";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -33,9 +34,8 @@ export function DashboardDateFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get current values from URL
-  const currentPreset =
-    (searchParams.get("preset") as DateRangePreset) || "all";
+  // Get current values from URL with safe defaults
+  const currentPreset = parseDateRangePreset(searchParams.get("preset"));
   const currentStartDate = searchParams.get("startDate") || undefined;
   const currentEndDate = searchParams.get("endDate") || undefined;
 

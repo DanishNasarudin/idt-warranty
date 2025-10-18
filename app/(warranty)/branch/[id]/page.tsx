@@ -3,6 +3,7 @@ import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-
 import { ActionButton } from "@/components/design-system";
 import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
+import { parseWarrantyCaseFilters } from "@/lib/utils/search-params";
 import { History } from "lucide-react";
 import Link from "next/link";
 import {
@@ -34,21 +35,12 @@ export default async function Page({
 
   const branch = await getBranch(branchId);
 
-  // Parse search params with defaults
-  const filters: WarrantyCaseFilters = {
-    search: resolvedSearchParams.search || "",
-    searchField: (resolvedSearchParams.searchField ||
-      "all") as WarrantyCaseFilters["searchField"],
-    sortBy: (resolvedSearchParams.sortBy ||
-      "createdAt") as WarrantyCaseFilters["sortBy"],
-    sortDirection: (resolvedSearchParams.sortDirection ||
-      "desc") as WarrantyCaseFilters["sortDirection"],
-    page: parseInt(resolvedSearchParams.page || "1"),
-    limit: parseInt(resolvedSearchParams.limit || "20"),
-  };
+  // Parse search params with defaults using utility function
+  const filters: WarrantyCaseFilters =
+    parseWarrantyCaseFilters(resolvedSearchParams);
 
   // Fetch initial data on the server with filters
-  const [cases, staff] = await Promise.all([
+  const [casesData, staff] = await Promise.all([
     getWarrantyCasesByBranch(branchId, filters),
     getStaffByBranch(branchId),
   ]);
@@ -95,7 +87,8 @@ export default async function Page({
         </div>
 
         <WarrantyCaseTableWrapper
-          initialCases={cases}
+          initialCases={casesData.cases}
+          totalCount={casesData.totalCount}
           initialStaff={staff}
           branchId={branchId}
           filters={filters}

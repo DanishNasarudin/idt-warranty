@@ -17,7 +17,10 @@ import nodemailer from "nodemailer";
 export async function getWarrantyCasesByBranch(
   branchId: number,
   filters?: WarrantyCaseFilters
-): Promise<WarrantyCaseWithRelations[]> {
+): Promise<{
+  cases: WarrantyCaseWithRelations[];
+  totalCount: number;
+}> {
   try {
     // Build where clause for search
     const whereClause: Prisma.WarrantyCaseWhereInput = {
@@ -67,6 +70,16 @@ export async function getWarrantyCasesByBranch(
       orderBy.push({ status: "asc" }, { createdAt: "desc" });
     }
 
+    // Calculate pagination
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination
+    const totalCount = await prisma.warrantyCase.count({
+      where: whereClause,
+    });
+
     const cases = await prisma.warrantyCase.findMany({
       where: whereClause,
       include: {
@@ -109,13 +122,18 @@ export async function getWarrantyCasesByBranch(
         },
       },
       orderBy,
+      skip,
+      take: limit,
     });
 
     // Convert Decimal to number for serialization
-    return cases.map((c) => ({
-      ...c,
-      cost: Number(c.cost),
-    })) as WarrantyCaseWithRelations[];
+    return {
+      cases: cases.map((c) => ({
+        ...c,
+        cost: Number(c.cost),
+      })) as WarrantyCaseWithRelations[],
+      totalCount,
+    };
   } catch (error) {
     console.error("Error fetching warranty cases:", error);
     throw new Error("Failed to fetch warranty cases");
@@ -550,8 +568,8 @@ export async function sendWarrantyCaseEmail(
 /**
  * Fetches warranty history for a specific branch with pagination
  * @param branchId - The branch ID to fetch history for
- * @param page - Page number (1-indexed)
- * @param pageSize - Number of records per page
+ * @param page - Page number (1-indexed, default: 1)
+ * @param pageSize - Number of records per page (default: 50, min: 1, max: 200)
  * @returns Paginated warranty history records
  */
 export async function getWarrantyHistoryByBranch(
@@ -560,7 +578,11 @@ export async function getWarrantyHistoryByBranch(
   pageSize: number = 50
 ) {
   try {
-    const skip = (page - 1) * pageSize;
+    // Validate and sanitize inputs
+    const validPage = Math.max(1, Math.floor(page));
+    const validPageSize = Math.max(1, Math.min(200, Math.floor(pageSize)));
+
+    const skip = (validPage - 1) * validPageSize;
 
     // Get total count for pagination
     const totalCount = await prisma.warrantyHistory.count({
@@ -599,16 +621,16 @@ export async function getWarrantyHistoryByBranch(
         changeTs: "desc",
       },
       skip,
-      take: pageSize,
+      take: validPageSize,
     });
 
     return {
       records: historyRecords,
       pagination: {
-        page,
-        pageSize,
+        page: validPage,
+        pageSize: validPageSize,
         totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
+        totalPages: Math.ceil(totalCount / validPageSize),
       },
     };
   } catch (error) {

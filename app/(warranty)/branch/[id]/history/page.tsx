@@ -1,5 +1,6 @@
 import HistoryList from "@/components/custom/warranty/history-list";
 import { Button } from "@/components/ui/button";
+import { parseIntSafe } from "@/lib/utils/search-params";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,7 +15,9 @@ export default async function HistoryPage({ params, searchParams }: Props) {
   const { id } = await params;
   const { page: pageParam } = await searchParams;
   const branchId = parseInt(id);
-  const page = parseInt(pageParam || "1");
+
+  // Safely parse page with default value of 1
+  const page = parseIntSafe(pageParam, 1, 1);
 
   if (isNaN(branchId)) {
     notFound();

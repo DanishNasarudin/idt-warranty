@@ -5,7 +5,8 @@ import { BranchTransferCard } from "@/components/custom/dashboard/branch-transfe
 import { DashboardDateFilter } from "@/components/custom/dashboard/dashboard-date-filter";
 import { StaffMetricsCard } from "@/components/custom/dashboard/staff-metrics-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { DateRangeFilter, DateRangePreset } from "@/lib/types/search-params";
+import { DateRangeFilter } from "@/lib/types/search-params";
+import { parseDateRangePreset } from "@/lib/utils/search-params";
 import { getDashboardStats } from "./actions";
 
 type PageProps = {
@@ -19,9 +20,9 @@ type PageProps = {
 export default async function Page({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // Build date range filter from search params
+  // Build date range filter from search params with safe defaults
   const dateRangeFilter: DateRangeFilter = {
-    preset: (params.preset as DateRangePreset) || "all",
+    preset: parseDateRangePreset(params.preset),
     startDate: params.startDate,
     endDate: params.endDate,
   };
