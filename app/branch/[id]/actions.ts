@@ -5,6 +5,10 @@ import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
+import {
+  generateServiceNumber,
+  getNextSequenceNumber,
+} from "@/lib/utils/service-number";
 import { revalidatePath } from "next/cache";
 
 export async function getWarrantyCasesByBranch(
@@ -149,10 +153,51 @@ export async function getBranch(branchId: number) {
   }
 }
 
+/**
+ * Generates the next service number for a branch
+ * Format: W[CODE][YYMM][###]
+ * @param branchId - The branch ID to generate service number for
+ * @returns The next service number in the format W[CODE][YYMM][###]
+ */
+export async function generateNextServiceNumber(
+  branchId: number
+): Promise<string> {
+  try {
+    // Get the branch to get its code
+    const branch = await prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { code: true },
+    });
+
+    if (!branch) {
+      throw new Error("Branch not found");
+    }
+
+    // Get all service numbers for this branch
+    const cases = await prisma.warrantyCase.findMany({
+      where: { branchId },
+      select: { serviceNo: true },
+    });
+
+    const existingServiceNumbers = cases.map((c) => c.serviceNo);
+
+    // Get the next sequence number for current month
+    const nextSequence = getNextSequenceNumber(
+      existingServiceNumbers,
+      branch.code
+    );
+
+    // Generate the service number
+    return generateServiceNumber(branch.code, nextSequence);
+  } catch (error) {
+    console.error("Error generating next service number:", error);
+    throw new Error("Failed to generate next service number");
+  }
+}
+
 export async function createWarrantyCase(
   branchId: number,
   data: {
-    serviceNo: string;
     customerName: string;
     customerContact?: string;
     customerEmail?: string;
@@ -169,9 +214,12 @@ export async function createWarrantyCase(
 ): Promise<WarrantyCaseWithRelations> {
   try {
     // Validate required fields
-    if (!data.serviceNo || !data.customerName) {
-      throw new Error("Service number and customer name are required");
+    if (!data.customerName) {
+      throw new Error("Customer name is required");
     }
+
+    // Generate the next service number automatically
+    const serviceNo = await generateNextServiceNumber(branchId);
 
     // Get default scope (you might want to make this configurable)
     const defaultScope = await prisma.caseScope.findFirst({
@@ -185,7 +233,7 @@ export async function createWarrantyCase(
     // Create the warranty case
     const newCase = await prisma.warrantyCase.create({
       data: {
-        serviceNo: data.serviceNo,
+        serviceNo,
         branchId,
         scopeId: defaultScope.id,
         customerName: data.customerName,

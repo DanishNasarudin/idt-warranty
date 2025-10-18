@@ -71,6 +71,15 @@ export function BranchManagement({
 
   const [formData, setFormData] = useState({ code: "", name: "" });
 
+  // Helper function to generate service number preview
+  const generateServiceNoPreview = (code: string) => {
+    if (!code.trim()) return "W[CODE]YYMM###";
+    const now = new Date();
+    const yy = now.getFullYear().toString().slice(-2);
+    const mm = (now.getMonth() + 1).toString().padStart(2, "0");
+    return `W${code.toUpperCase()}${yy}${mm}001`;
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -166,6 +175,12 @@ export function BranchManagement({
                     required
                     maxLength={16}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    This code will be used in service numbers. Preview:{" "}
+                    <span className="font-mono font-semibold text-foreground">
+                      {generateServiceNoPreview(formData.code)}
+                    </span>
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Branch Name</Label>
@@ -271,6 +286,12 @@ export function BranchManagement({
                   required
                   maxLength={16}
                 />
+                <p className="text-xs text-muted-foreground">
+                  This code will be used in service numbers. Preview:{" "}
+                  <span className="font-mono font-semibold text-foreground">
+                    {generateServiceNoPreview(formData.code)}
+                  </span>
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Branch Name</Label>

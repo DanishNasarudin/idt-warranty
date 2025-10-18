@@ -31,7 +31,6 @@ type CreateWarrantyCaseDialogProps = {
 };
 
 export type CreateWarrantyCaseFormData = {
-  serviceNo: string;
   customerName: string;
   customerContact?: string;
   customerEmail?: string;
@@ -54,7 +53,6 @@ export function CreateWarrantyCaseDialog({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateWarrantyCaseFormData>({
-    serviceNo: "",
     customerName: "",
     customerContact: "",
     customerEmail: "",
@@ -75,12 +73,6 @@ export function CreateWarrantyCaseDialog({
 
     try {
       // Validate required fields
-      if (!formData.serviceNo.trim()) {
-        toast.error("Service number is required");
-        setIsSubmitting(false);
-        return;
-      }
-
       if (!formData.customerName.trim()) {
         toast.error("Customer name is required");
         setIsSubmitting(false);
@@ -93,7 +85,6 @@ export function CreateWarrantyCaseDialog({
 
       // Reset form and close dialog
       setFormData({
-        serviceNo: "",
         customerName: "",
         customerContact: "",
         customerEmail: "",
@@ -136,23 +127,11 @@ export function CreateWarrantyCaseDialog({
           <DialogTitle>Create New Warranty Case</DialogTitle>
           <DialogDescription>
             Fill in the details for the new warranty case. Fields marked with *
-            are required.
+            are required. The service number will be generated automatically.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            {/* Service No */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="serviceNo">Service No *</Label>
-              <Input
-                id="serviceNo"
-                value={formData.serviceNo}
-                onChange={(e) => updateFormData("serviceNo", e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-
             {/* Customer Name */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="customerName">Customer Name *</Label>
