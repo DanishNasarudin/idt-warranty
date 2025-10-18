@@ -126,19 +126,25 @@ export function WarrantyCaseTable({
   };
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]"></TableHead>
-            <TableHead className="min-w-[120px]">Date</TableHead>
-            <TableHead className="min-w-[150px]">Service No</TableHead>
-            <TableHead className="w-[100px]">IDT PC?</TableHead>
-            <TableHead className="min-w-[150px]">Received By</TableHead>
-            <TableHead className="min-w-[150px]">Serviced By</TableHead>
-            <TableHead className="min-w-[200px]">Name</TableHead>
-            <TableHead className="min-w-[150px]">Contact</TableHead>
-            <TableHead className="min-w-[130px]">Status</TableHead>
+            <TableHead className="w-[50px] py-1 px-1"></TableHead>
+            <TableHead className="min-w-[120px] py-1 px-2">Date</TableHead>
+            <TableHead className="min-w-[150px] py-1 px-2">
+              Service No
+            </TableHead>
+            <TableHead className="w-[100px] py-1 px-2">IDT PC?</TableHead>
+            <TableHead className="min-w-[150px] py-1 px-2">
+              Received By
+            </TableHead>
+            <TableHead className="min-w-[150px] py-1 px-2">
+              Serviced By
+            </TableHead>
+            <TableHead className="min-w-[200px] py-1 px-2">Name</TableHead>
+            <TableHead className="min-w-[150px] py-1 px-2">Contact</TableHead>
+            <TableHead className="min-w-[130px] py-1 px-2">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -158,12 +164,12 @@ export function WarrantyCaseTable({
               return (
                 <>
                   <TableRow key={case_.id} className="hover:bg-muted/50">
-                    <TableCell>
+                    <TableCell className="py-1 px-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleRowExpansion(case_.id)}
-                        className="h-8 w-8 p-0"
+                        className="h-6 w-6 p-0"
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4" />
@@ -173,13 +179,13 @@ export function WarrantyCaseTable({
                       </Button>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       {case_.createdAt
                         ? format(new Date(case_.createdAt), "dd/MM/yyyy")
                         : "-"}
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <EditableTextCell
                         value={case_.serviceNo}
                         onSave={(value) =>
@@ -199,7 +205,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <DropdownCell
                         value={case_.idtPc}
                         options={IDT_PC_OPTIONS}
@@ -215,7 +221,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <DropdownCell
                         value={case_.receivedByStaffId}
                         options={staffOptions.map((s) => ({
@@ -250,7 +256,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <DropdownCell
                         value={case_.servicedByStaffId}
                         options={staffOptions.map((s) => ({
@@ -285,7 +291,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <EditableTextCell
                         value={case_.customerName}
                         onSave={(value) =>
@@ -305,7 +311,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <EditableTextCell
                         value={case_.customerContact}
                         onSave={(value) =>
@@ -325,7 +331,7 @@ export function WarrantyCaseTable({
                       />
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className="py-1 px-2">
                       <DropdownCell
                         value={case_.status}
                         options={STATUS_OPTIONS}

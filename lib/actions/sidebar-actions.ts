@@ -11,7 +11,7 @@ export async function getBranchesForSidebar() {
         name: true,
       },
       orderBy: {
-        name: "asc",
+        id: "asc",
       },
     });
     return branches;
