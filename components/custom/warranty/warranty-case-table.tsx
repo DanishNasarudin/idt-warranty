@@ -77,7 +77,6 @@ export function WarrantyCaseTable({
     updateCase,
     toggleRowExpansion,
     setEditingCell,
-    getPaginatedCases,
   } = useWarrantyCaseStore();
 
   useEffect(() => {
@@ -88,8 +87,8 @@ export function WarrantyCaseTable({
     setStaffOptions(initialStaff);
   }, [initialStaff, setStaffOptions]);
 
-  // Use paginated cases instead of all cases
-  const displayedCases = getPaginatedCases();
+  // Display all initial cases (already filtered/sorted/paginated from server)
+  const displayedCases = initialCases;
 
   const handleUpdate = async (caseId: number, field: string, value: any) => {
     // Optimistic update

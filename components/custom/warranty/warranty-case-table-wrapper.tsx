@@ -1,5 +1,6 @@
 "use client";
 
+import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import {
   StaffOption,
   WarrantyCaseUpdate,
@@ -18,6 +19,7 @@ type WarrantyCaseTableWrapperProps = {
   initialCases: WarrantyCaseWithRelations[];
   initialStaff: StaffOption[];
   branchId: number;
+  filters: WarrantyCaseFilters;
   onUpdateCase: (caseId: number, updates: WarrantyCaseUpdate) => Promise<void>;
   onCreateCase: (data: CreateWarrantyCaseFormData) => Promise<void>;
 };
@@ -26,6 +28,7 @@ export function WarrantyCaseTableWrapper({
   initialCases,
   initialStaff,
   branchId,
+  filters,
   onUpdateCase,
   onCreateCase,
 }: WarrantyCaseTableWrapperProps) {
@@ -57,7 +60,7 @@ export function WarrantyCaseTableWrapper({
     <div className="space-y-4">
       {/* Toolbar with search, filters, and create button */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <TableToolbar />
+        <TableToolbar filters={filters} />
         <CreateWarrantyCaseDialog
           branchId={branchId}
           staff={initialStaff}
@@ -73,7 +76,7 @@ export function WarrantyCaseTableWrapper({
       />
 
       {/* Pagination */}
-      <TablePagination />
+      <TablePagination filters={filters} totalCases={initialCases.length} />
     </div>
   );
 }

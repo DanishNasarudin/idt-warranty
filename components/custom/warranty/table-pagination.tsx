@@ -8,42 +8,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
+import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useTransition } from "react";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
-export function TablePagination() {
-  const {
-    currentPage,
-    rowsPerPage,
-    setCurrentPage,
-    setRowsPerPage,
-    getTotalPages,
-    getSortedCases,
-    getPaginatedCases,
-  } = useWarrantyCaseStore();
+type TablePaginationProps = {
+  filters: WarrantyCaseFilters;
+  totalCases: number;
+};
 
-  const totalPages = getTotalPages();
-  const totalItems = getSortedCases().length;
-  const paginatedCases = getPaginatedCases();
+export function TablePagination({ filters, totalCases }: TablePaginationProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
-  const endItem = Math.min(currentPage * rowsPerPage, totalItems);
+  const totalPages = Math.ceil(totalCases / filters.limit);
+  const startItem =
+    totalCases === 0 ? 0 : (filters.page - 1) * filters.limit + 1;
+  const endItem = Math.min(filters.page * filters.limit, totalCases);
 
-  const canGoPrevious = currentPage > 1;
-  const canGoNext = currentPage < totalPages;
+  const canGoPrevious = filters.page > 1;
+  const canGoNext = filters.page < totalPages;
 
-  const handleFirstPage = () => setCurrentPage(1);
-  const handlePreviousPage = () => setCurrentPage(Math.max(1, currentPage - 1));
+  const updatePage = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", String(page));
+
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const updateLimit = useCallback(
+    (limit: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("limit", String(limit));
+      params.set("page", "1"); // Reset to first page when changing limit
+
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const handleFirstPage = () => updatePage(1);
+  const handlePreviousPage = () => updatePage(Math.max(1, filters.page - 1));
   const handleNextPage = () =>
-    setCurrentPage(Math.min(totalPages, currentPage + 1));
-  const handleLastPage = () => setCurrentPage(totalPages);
+    updatePage(Math.min(totalPages, filters.page + 1));
+  const handleLastPage = () => updatePage(totalPages);
 
   return (
     <div className="flex flex-col items-center justify-between gap-4 px-2 py-4 sm:flex-row">
@@ -51,8 +76,9 @@ export function TablePagination() {
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">Rows per page:</span>
         <Select
-          value={rowsPerPage.toString()}
-          onValueChange={(value) => setRowsPerPage(parseInt(value))}
+          value={filters.limit.toString()}
+          onValueChange={(value) => updateLimit(parseInt(value))}
+          disabled={isPending}
         >
           <SelectTrigger className="w-[80px]">
             <SelectValue />
@@ -69,11 +95,11 @@ export function TablePagination() {
 
       {/* Item count */}
       <div className="text-sm text-muted-foreground">
-        {totalItems === 0 ? (
+        {totalCases === 0 ? (
           "No items"
         ) : (
           <>
-            Showing {startItem} to {endItem} of {totalItems} items
+            Showing {startItem} to {endItem} of {totalCases} items
           </>
         )}
       </div>
@@ -81,14 +107,14 @@ export function TablePagination() {
       {/* Pagination controls */}
       <div className="flex items-center gap-2">
         <div className="text-sm text-muted-foreground">
-          Page {totalPages === 0 ? 0 : currentPage} of {totalPages}
+          Page {totalPages === 0 ? 0 : filters.page} of {totalPages}
         </div>
         <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="icon"
             onClick={handleFirstPage}
-            disabled={!canGoPrevious}
+            disabled={!canGoPrevious || isPending}
             title="First page"
           >
             <ChevronsLeft className="h-4 w-4" />
@@ -97,7 +123,7 @@ export function TablePagination() {
             variant="outline"
             size="icon"
             onClick={handlePreviousPage}
-            disabled={!canGoPrevious}
+            disabled={!canGoPrevious || isPending}
             title="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -106,7 +132,7 @@ export function TablePagination() {
             variant="outline"
             size="icon"
             onClick={handleNextPage}
-            disabled={!canGoNext}
+            disabled={!canGoNext || isPending}
             title="Next page"
           >
             <ChevronRight className="h-4 w-4" />
@@ -115,7 +141,7 @@ export function TablePagination() {
             variant="outline"
             size="icon"
             onClick={handleLastPage}
-            disabled={!canGoNext}
+            disabled={!canGoNext || isPending}
             title="Last page"
           >
             <ChevronsRight className="h-4 w-4" />

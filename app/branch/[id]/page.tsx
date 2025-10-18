@@ -1,6 +1,7 @@
 import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-case-table-wrapper";
 import { Toaster } from "@/components/ui/sonner";
+import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
 import {
   createWarrantyCase,
@@ -10,17 +11,43 @@ import {
   updateWarrantyCase,
 } from "./actions";
 
+type SearchParams = {
+  search?: string;
+  searchField?: string;
+  sortBy?: string;
+  sortDirection?: string;
+  page?: string;
+  limit?: string;
+};
+
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const branchId = parseInt((await params).id);
+  const resolvedSearchParams = await searchParams;
+
   const branch = await getBranch(branchId);
 
-  // Fetch initial data on the server
+  // Parse search params with defaults
+  const filters: WarrantyCaseFilters = {
+    search: resolvedSearchParams.search || "",
+    searchField: (resolvedSearchParams.searchField ||
+      "all") as WarrantyCaseFilters["searchField"],
+    sortBy: (resolvedSearchParams.sortBy ||
+      "createdAt") as WarrantyCaseFilters["sortBy"],
+    sortDirection: (resolvedSearchParams.sortDirection ||
+      "desc") as WarrantyCaseFilters["sortDirection"],
+    page: parseInt(resolvedSearchParams.page || "1"),
+    limit: parseInt(resolvedSearchParams.limit || "20"),
+  };
+
+  // Fetch initial data on the server with filters
   const [cases, staff] = await Promise.all([
-    getWarrantyCasesByBranch(branchId),
+    getWarrantyCasesByBranch(branchId, filters),
     getStaffByBranch(branchId),
   ]);
 
@@ -54,6 +81,7 @@ export default async function Page({
           initialCases={cases}
           initialStaff={staff}
           branchId={branchId}
+          filters={filters}
           onUpdateCase={handleUpdateCase}
           onCreateCase={handleCreateCase}
         />

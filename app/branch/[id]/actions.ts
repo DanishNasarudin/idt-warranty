@@ -1,6 +1,8 @@
 "use server";
 
+import { Prisma } from "@/lib/generated/prisma";
 import prisma from "@/lib/prisma";
+import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
@@ -12,13 +14,60 @@ import {
 import { revalidatePath } from "next/cache";
 
 export async function getWarrantyCasesByBranch(
-  branchId: number
+  branchId: number,
+  filters?: WarrantyCaseFilters
 ): Promise<WarrantyCaseWithRelations[]> {
   try {
+    // Build where clause for search
+    const whereClause: Prisma.WarrantyCaseWhereInput = {
+      branchId,
+    };
+
+    // Add search filters
+    if (filters?.search && filters.search.trim() !== "") {
+      const searchTerm = filters.search.trim();
+
+      if (filters.searchField === "all") {
+        // Search across all fields
+        whereClause.OR = [
+          { serviceNo: { contains: searchTerm } },
+          { customerName: { contains: searchTerm } },
+          { customerContact: { contains: searchTerm } },
+          { customerEmail: { contains: searchTerm } },
+        ];
+      } else {
+        // Search specific field
+        switch (filters.searchField) {
+          case "serviceNo":
+            whereClause.serviceNo = { contains: searchTerm };
+            break;
+          case "customerName":
+            whereClause.customerName = { contains: searchTerm };
+            break;
+          case "customerContact":
+            whereClause.customerContact = { contains: searchTerm };
+            break;
+          case "customerEmail":
+            whereClause.customerEmail = { contains: searchTerm };
+            break;
+        }
+      }
+    }
+
+    // Build order by clause
+    const orderBy: Prisma.WarrantyCaseOrderByWithRelationInput[] = [];
+
+    if (filters?.sortBy) {
+      orderBy.push({
+        [filters.sortBy]: filters.sortDirection || "desc",
+      });
+    } else {
+      // Default sorting
+      orderBy.push({ status: "asc" }, { createdAt: "desc" });
+    }
+
     const cases = await prisma.warrantyCase.findMany({
-      where: {
-        branchId,
-      },
+      where: whereClause,
       include: {
         receivedBy: {
           select: {
@@ -48,7 +97,7 @@ export async function getWarrantyCasesByBranch(
           },
         },
       },
-      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      orderBy,
     });
 
     // Convert Decimal to number for serialization
