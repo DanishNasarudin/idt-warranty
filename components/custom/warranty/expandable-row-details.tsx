@@ -20,6 +20,7 @@ import { WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PrintPDFButton } from "./print-pdf-button";
 
 type ExpandableRowDetailsProps = {
   case_: WarrantyCaseWithRelations;
@@ -113,6 +114,9 @@ export function ExpandableRowDetails({
           </h3>
         </div>
         <div className="flex items-center gap-2">
+          {/* Print PDF Button */}
+          <PrintPDFButton case_={case_} />
+
           {/* Delete Button with Confirmation */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
