@@ -430,21 +430,23 @@ export function WarrantyCaseTable({
                     </TableCell>
                   </TableRow>
 
-                  {isExpanded && (
-                    <TableRow key={`accordion-${case_.id}`}>
-                      <TableCell colSpan={9} className="p-0">
-                        <ExpandableRowDetails
-                          case_={case_}
-                          onUpdate={(updates) =>
-                            handleMultiFieldUpdate(case_.id, updates)
-                          }
-                          onAcquireFieldLock={onAcquireFieldLock}
-                          onReleaseFieldLock={onReleaseFieldLock}
-                          userId={userId}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  <TableRow
+                    key={`accordion-${case_.id}`}
+                    className={`border-0 ${isExpanded && "border-b"}`}
+                  >
+                    <TableCell colSpan={9} className="p-0">
+                      <ExpandableRowDetails
+                        case_={case_}
+                        onUpdate={(updates) =>
+                          handleMultiFieldUpdate(case_.id, updates)
+                        }
+                        onAcquireFieldLock={onAcquireFieldLock}
+                        onReleaseFieldLock={onReleaseFieldLock}
+                        userId={userId}
+                        isExpanded={isExpanded}
+                      />
+                    </TableCell>
+                  </TableRow>
                 </Fragment>
               );
             })

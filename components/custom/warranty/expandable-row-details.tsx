@@ -44,6 +44,7 @@ type ExpandableRowDetailsProps = {
   onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
   userId?: string;
   staffId?: number;
+  isExpanded: boolean;
 };
 
 export function ExpandableRowDetails({
@@ -53,6 +54,7 @@ export function ExpandableRowDetails({
   onReleaseFieldLock,
   userId = "",
   staffId,
+  isExpanded,
 }: ExpandableRowDetailsProps) {
   const [localData, setLocalData] = useState({
     customerEmail: case_.customerEmail || "",
@@ -215,190 +217,202 @@ export function ExpandableRowDetails({
   ];
 
   return (
-    <div className="bg-muted/30 border-t">
-      {/* Action Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/20">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Case Actions
-          </h3>
-          {/* Show transfer indicator if case was transferred */}
-          {case_.originBranchId &&
-            case_.originBranchId !== case_.branchId &&
-            case_.originBranch && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <ArrowRightLeft className="h-3 w-3" />
-                From {case_.originBranch.name}
-              </Badge>
-            )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Transfer Case Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTransferDialog(true)}
-            className="gap-2"
-            disabled={availableBranches.length === 0}
-          >
-            <ArrowRightLeft className="h-4 w-4" />
-            Transfer
-          </Button>
-
-          {/* Transfer History Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowHistoryDialog(true)}
-            className="gap-2"
-          >
-            <History className="h-4 w-4" />
-            History
-          </Button>
-
-          {/* Print PDF Button */}
-          <PrintPDFButton case_={case_} />
-
-          {/* Send Email Button - Only shows if customer email exists */}
-          <SendEmailButton case_={case_} />
-
-          {/* Delete Button with Confirmation */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+    <div
+      className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+      )}
+    >
+      <div className="overflow-hidden">
+        <div className="bg-muted/30">
+          {/* Action Bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/20">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Case Actions
+              </h3>
+              {/* Show transfer indicator if case was transferred */}
+              {case_.originBranchId &&
+                case_.originBranchId !== case_.branchId &&
+                case_.originBranch && (
+                  <Badge variant="secondary" className="gap-1 text-xs">
+                    <ArrowRightLeft className="h-3 w-3" />
+                    From {case_.originBranch.name}
+                  </Badge>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Transfer Case Button */}
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
-                disabled={isDeleting}
+                onClick={() => setShowTransferDialog(true)}
+                className="gap-2"
+                disabled={availableBranches.length === 0}
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                Transfer
+              </Button>
+
+              {/* Transfer History Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistoryDialog(true)}
                 className="gap-2"
               >
-                <Trash2 className="h-4 w-4" />
-                Delete Case
+                <History className="h-4 w-4" />
+                History
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  warranty case <strong>{case_.serviceNo}</strong> for{" "}
-                  <strong>{case_.customerName}</strong> and remove all
-                  associated data from the system.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          {/* Add more action buttons here in the future */}
-        </div>
-      </div>
 
-      {/* Existing Fields Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-        {fields.map((field) => {
-          const lockStatus = getFieldLockStatus(field.name);
-          const fieldValue = localData[field.name as keyof typeof localData];
+              {/* Print PDF Button */}
+              <PrintPDFButton case_={case_} />
 
-          return (
-            <div key={field.name} className="space-y-2">
-              <Label
-                htmlFor={`${case_.id}-${field.name}`}
-                className={cn(
-                  "text-sm font-medium flex items-center gap-1",
-                  lockStatus.isLocked && "text-muted-foreground"
-                )}
-              >
-                {lockStatus.isLocked && (
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lock className="h-3 w-3" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        <p>Locked by {lockStatus.lockedBy}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                {field.label}
-              </Label>
-              {field.multiline ? (
-                <textarea
-                  id={`${case_.id}-${field.name}`}
-                  value={fieldValue}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                  onFocus={() => handleFocus(field.name)}
-                  onBlur={() => handleBlur(field.name)}
-                  disabled={lockStatus.isLocked}
-                  className={cn(
-                    "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                    lockStatus.isLocked && "bg-muted/50"
-                  )}
-                />
-              ) : (
-                <Input
-                  id={`${case_.id}-${field.name}`}
-                  type={field.type}
-                  value={fieldValue}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                  onFocus={() => handleFocus(field.name)}
-                  onBlur={() => handleBlur(field.name)}
-                  disabled={lockStatus.isLocked}
-                  className={cn(lockStatus.isLocked && "bg-muted/50")}
-                />
-              )}
+              {/* Send Email Button - Only shows if customer email exists */}
+              <SendEmailButton case_={case_} />
+
+              {/* Delete Button with Confirmation */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isDeleting}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete Case
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      the warranty case <strong>{case_.serviceNo}</strong> for{" "}
+                      <strong>{case_.customerName}</strong> and remove all
+                      associated data from the system.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              {/* Add more action buttons here in the future */}
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* Images Section */}
-      <div className="border-t px-4 py-4 space-y-4">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Images</Label>
-          <ImageUpload
+          {/* Existing Fields Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+            {fields.map((field) => {
+              const lockStatus = getFieldLockStatus(field.name);
+              const fieldValue =
+                localData[field.name as keyof typeof localData];
+
+              return (
+                <div key={field.name} className="space-y-2">
+                  <Label
+                    htmlFor={`${case_.id}-${field.name}`}
+                    className={cn(
+                      "text-sm font-medium flex items-center gap-1",
+                      lockStatus.isLocked && "text-muted-foreground"
+                    )}
+                  >
+                    {lockStatus.isLocked && (
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Lock className="h-3 w-3" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            <p>Locked by {lockStatus.lockedBy}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {field.label}
+                  </Label>
+                  {field.multiline ? (
+                    <textarea
+                      id={`${case_.id}-${field.name}`}
+                      value={fieldValue}
+                      onChange={(e) => handleChange(field.name, e.target.value)}
+                      onFocus={() => handleFocus(field.name)}
+                      onBlur={() => handleBlur(field.name)}
+                      disabled={lockStatus.isLocked}
+                      className={cn(
+                        "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                        lockStatus.isLocked && "bg-muted/50"
+                      )}
+                    />
+                  ) : (
+                    <Input
+                      id={`${case_.id}-${field.name}`}
+                      type={field.type}
+                      value={fieldValue}
+                      onChange={(e) => handleChange(field.name, e.target.value)}
+                      onFocus={() => handleFocus(field.name)}
+                      onBlur={() => handleBlur(field.name)}
+                      disabled={lockStatus.isLocked}
+                      className={cn(lockStatus.isLocked && "bg-muted/50")}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Images Section */}
+          <div className="border-t px-4 py-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Images</Label>
+              <ImageUpload
+                caseId={case_.id}
+                onUploadComplete={() => {
+                  // Trigger image list refresh
+                  setImageRefreshTrigger((prev) => prev + 1);
+                }}
+              />
+            </div>
+            <ImageList caseId={case_.id} refreshTrigger={imageRefreshTrigger} />
+          </div>
+
+          {/* Transfer Dialogs */}
+          <TransferCaseDialog
+            open={showTransferDialog}
+            onOpenChange={setShowTransferDialog}
             caseId={case_.id}
-            onUploadComplete={() => {
-              // Trigger image list refresh
-              setImageRefreshTrigger((prev) => prev + 1);
+            currentBranchId={case_.branchId}
+            currentBranchName={case_.branch.name}
+            serviceNo={case_.serviceNo}
+            availableBranches={availableBranches}
+            staffId={staffId}
+            onTransferComplete={() => {
+              // Optionally refresh the page or update local state
+              window.location.reload();
             }}
           />
+
+          <TransferHistoryDialog
+            open={showHistoryDialog}
+            onOpenChange={setShowHistoryDialog}
+            caseId={case_.id}
+            serviceNo={case_.serviceNo}
+          />
         </div>
-        <ImageList caseId={case_.id} refreshTrigger={imageRefreshTrigger} />
       </div>
-
-      {/* Transfer Dialogs */}
-      <TransferCaseDialog
-        open={showTransferDialog}
-        onOpenChange={setShowTransferDialog}
-        caseId={case_.id}
-        currentBranchId={case_.branchId}
-        currentBranchName={case_.branch.name}
-        serviceNo={case_.serviceNo}
-        availableBranches={availableBranches}
-        staffId={staffId}
-        onTransferComplete={() => {
-          // Optionally refresh the page or update local state
-          window.location.reload();
-        }}
-      />
-
-      <TransferHistoryDialog
-        open={showHistoryDialog}
-        onOpenChange={setShowHistoryDialog}
-        caseId={case_.id}
-        serviceNo={case_.serviceNo}
-      />
     </div>
   );
 }
