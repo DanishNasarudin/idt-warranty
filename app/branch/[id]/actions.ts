@@ -306,3 +306,37 @@ export async function createWarrantyCase(
     throw new Error(error.message || "Failed to create warranty case");
   }
 }
+
+export async function deleteWarrantyCase(
+  caseId: number,
+  branchId: number
+): Promise<void> {
+  try {
+    // Create history entry before deletion
+    await createWarrantyHistory(caseId, "DELETE");
+
+    // Delete the warranty case
+    await prisma.warrantyCase.delete({
+      where: {
+        id: caseId,
+      },
+    });
+
+    // Revalidate the page to reflect changes
+    revalidatePath(`/branch/${branchId}`);
+
+    // TODO: Emit socket.io event here for real-time updates
+    // Example: socketServer.to(`branch-${branchId}`).emit('caseDeleted', { caseId });
+  } catch (error: any) {
+    console.error("Error deleting warranty case:", error);
+
+    // Handle foreign key constraint violations
+    if (error.code === "P2003") {
+      throw new Error(
+        "Cannot delete warranty case. It has related history records."
+      );
+    }
+
+    throw new Error(error.message || "Failed to delete warranty case");
+  }
+}

@@ -45,6 +45,7 @@ type WarrantyCaseStore = {
     caseId: number,
     updates: Partial<WarrantyCaseWithRelations>
   ) => void;
+  deleteCase: (caseId: number) => void;
   toggleRowExpansion: (caseId: number) => void;
   setEditingCell: (cell: EditingCell | null) => void;
 
@@ -92,6 +93,14 @@ export const useWarrantyCaseStore = create<WarrantyCaseStore>((set, get) => ({
     set((state) => ({
       cases: state.cases.map((c) =>
         c.id === caseId ? { ...c, ...updates } : c
+      ),
+    })),
+
+  deleteCase: (caseId) =>
+    set((state) => ({
+      cases: state.cases.filter((c) => c.id !== caseId),
+      expandedRows: new Set(
+        Array.from(state.expandedRows).filter((id) => id !== caseId)
       ),
     })),
 
