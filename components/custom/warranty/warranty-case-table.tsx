@@ -175,7 +175,7 @@ export function WarrantyCaseTable({
 
                     <TableCell>
                       {case_.createdAt
-                        ? format(new Date(case_.createdAt), "MMM dd, yyyy")
+                        ? format(new Date(case_.createdAt), "dd/MM/yyyy")
                         : "-"}
                     </TableCell>
 
