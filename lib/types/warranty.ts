@@ -40,6 +40,9 @@ export type WarrantyCaseWithRelations = {
     id: number;
     code: string;
     name: string;
+    address: string | null;
+    officePhone: string | null;
+    whatsappPhone: string | null;
   };
   scope: {
     id: number;

@@ -176,7 +176,9 @@ export function WarrantyCasePDF({
               <View style={styles.companyInfo}>
                 <Text style={styles.companyName}>Ideal Tech PC Sdn Bhd</Text>
                 <View style={{ flexDirection: "row", gap: 16 }}>
-                  <Text style={styles.contactInfo}>{companyAddress}</Text>
+                  <Text style={{ ...styles.contactInfo, maxWidth: 150 }}>
+                    {companyAddress}
+                  </Text>
                   <View style={{ flexDirection: "column" }}>
                     <Text style={styles.contactInfo}>
                       Office: {officeNumber}

@@ -46,12 +46,21 @@ export async function getBranchesForSelect() {
   }
 }
 
-export async function createBranch(data: { code: string; name: string }) {
+export async function createBranch(data: {
+  code: string;
+  name: string;
+  address?: string;
+  officePhone?: string;
+  whatsappPhone?: string;
+}) {
   try {
     const branch = await prisma.branch.create({
       data: {
         code: data.code,
         name: data.name,
+        address: data.address,
+        officePhone: data.officePhone,
+        whatsappPhone: data.whatsappPhone,
       },
       include: {
         _count: {
@@ -73,7 +82,13 @@ export async function createBranch(data: { code: string; name: string }) {
 
 export async function updateBranch(
   id: number,
-  data: { code?: string; name?: string }
+  data: {
+    code?: string;
+    name?: string;
+    address?: string;
+    officePhone?: string;
+    whatsappPhone?: string;
+  }
 ) {
   try {
     const branch = await prisma.branch.update({

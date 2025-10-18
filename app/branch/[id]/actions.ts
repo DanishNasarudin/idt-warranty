@@ -89,6 +89,9 @@ export async function getWarrantyCasesByBranch(
             id: true,
             code: true,
             name: true,
+            address: true,
+            officePhone: true,
+            whatsappPhone: true,
           },
         },
         scope: {

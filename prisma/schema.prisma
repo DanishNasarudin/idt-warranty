@@ -35,9 +35,12 @@ enum TransferStatus {
 }
 
 model Branch {
-  id   Int    @id @default(autoincrement())
-  code String @unique @db.VarChar(16) // e.g. 'AP','JB','S2','SA','PN'
-  name String @db.VarChar(64)
+  id            Int     @id @default(autoincrement())
+  code          String  @unique @db.VarChar(16) // e.g. 'AP','JB','S2','SA','PN'
+  name          String  @db.VarChar(64)
+  address       String? @db.VarChar(255)
+  officePhone   String? @db.VarChar(32)
+  whatsappPhone String? @db.VarChar(32)
 
   cases         WarrantyCase[]
   originCases   WarrantyCase[]  @relation("OriginBranch")

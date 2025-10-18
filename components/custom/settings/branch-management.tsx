@@ -38,6 +38,9 @@ type BranchWithCounts = {
   id: number;
   code: string;
   name: string;
+  address: string | null;
+  officePhone: string | null;
+  whatsappPhone: string | null;
   _count: {
     staff: number;
     cases: number;
@@ -46,10 +49,22 @@ type BranchWithCounts = {
 
 type BranchManagementProps = {
   initialBranches: BranchWithCounts[];
-  onCreateBranch: (data: { code: string; name: string }) => Promise<any>;
+  onCreateBranch: (data: {
+    code: string;
+    name: string;
+    address?: string;
+    officePhone?: string;
+    whatsappPhone?: string;
+  }) => Promise<any>;
   onUpdateBranch: (
     id: number,
-    data: { code?: string; name?: string }
+    data: {
+      code?: string;
+      name?: string;
+      address?: string;
+      officePhone?: string;
+      whatsappPhone?: string;
+    }
   ) => Promise<any>;
   onDeleteBranch: (id: number) => Promise<void>;
 };
@@ -69,7 +84,13 @@ export function BranchManagement({
     null
   );
 
-  const [formData, setFormData] = useState({ code: "", name: "" });
+  const [formData, setFormData] = useState({
+    code: "",
+    name: "",
+    address: "",
+    officePhone: "",
+    whatsappPhone: "",
+  });
 
   // Helper function to generate service number preview
   const generateServiceNoPreview = (code: string) => {
@@ -90,7 +111,13 @@ export function BranchManagement({
       ]);
       toast.success("Branch created successfully");
       setIsCreateOpen(false);
-      setFormData({ code: "", name: "" });
+      setFormData({
+        code: "",
+        name: "",
+        address: "",
+        officePhone: "",
+        whatsappPhone: "",
+      });
     } catch (error) {
       toast.error("Failed to create branch");
     }
@@ -109,7 +136,13 @@ export function BranchManagement({
       );
       toast.success("Branch updated successfully");
       setEditingBranch(null);
-      setFormData({ code: "", name: "" });
+      setFormData({
+        code: "",
+        name: "",
+        address: "",
+        officePhone: "",
+        whatsappPhone: "",
+      });
     } catch (error) {
       toast.error("Failed to update branch");
     }
@@ -130,12 +163,24 @@ export function BranchManagement({
 
   const openEditDialog = (branch: BranchWithCounts) => {
     setEditingBranch(branch);
-    setFormData({ code: branch.code, name: branch.name });
+    setFormData({
+      code: branch.code,
+      name: branch.name,
+      address: branch.address || "",
+      officePhone: branch.officePhone || "",
+      whatsappPhone: branch.whatsappPhone || "",
+    });
   };
 
   const closeEditDialog = () => {
     setEditingBranch(null);
-    setFormData({ code: "", name: "" });
+    setFormData({
+      code: "",
+      name: "",
+      address: "",
+      officePhone: "",
+      whatsappPhone: "",
+    });
   };
 
   return (
@@ -193,6 +238,45 @@ export function BranchManagement({
                     }
                     required
                     maxLength={64}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    placeholder="e.g., 123 Main Street, City"
+                    value={formData.address}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
+                    maxLength={255}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="officePhone">Office Phone</Label>
+                  <Input
+                    id="officePhone"
+                    placeholder="e.g., +60 3-1234 5678"
+                    value={formData.officePhone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, officePhone: e.target.value })
+                    }
+                    maxLength={32}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsappPhone">WhatsApp Number</Label>
+                  <Input
+                    id="whatsappPhone"
+                    placeholder="e.g., +60 12-345 6789"
+                    value={formData.whatsappPhone}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        whatsappPhone: e.target.value,
+                      })
+                    }
+                    maxLength={32}
                   />
                 </div>
               </div>
@@ -303,6 +387,42 @@ export function BranchManagement({
                   }
                   required
                   maxLength={64}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Address</Label>
+                <Input
+                  id="edit-address"
+                  placeholder="e.g., 123 Main Street, City"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  maxLength={255}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-officePhone">Office Phone</Label>
+                <Input
+                  id="edit-officePhone"
+                  placeholder="e.g., +60 3-1234 5678"
+                  value={formData.officePhone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, officePhone: e.target.value })
+                  }
+                  maxLength={32}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-whatsappPhone">WhatsApp Number</Label>
+                <Input
+                  id="edit-whatsappPhone"
+                  placeholder="e.g., +60 12-345 6789"
+                  value={formData.whatsappPhone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, whatsappPhone: e.target.value })
+                  }
+                  maxLength={32}
                 />
               </div>
             </div>

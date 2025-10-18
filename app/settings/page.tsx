@@ -30,14 +30,26 @@ export default async function SettingsPage() {
   ]);
 
   // Server action wrappers for client components
-  async function handleCreateBranch(data: { code: string; name: string }) {
+  async function handleCreateBranch(data: {
+    code: string;
+    name: string;
+    address?: string;
+    officePhone?: string;
+    whatsappPhone?: string;
+  }) {
     "use server";
     return await createBranchAction(data);
   }
 
   async function handleUpdateBranch(
     id: number,
-    data: { code?: string; name?: string }
+    data: {
+      code?: string;
+      name?: string;
+      address?: string;
+      officePhone?: string;
+      whatsappPhone?: string;
+    }
   ) {
     "use server";
     return await updateBranchAction(id, data);
