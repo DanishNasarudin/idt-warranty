@@ -4,14 +4,42 @@ A modern, full-featured warranty case management system built with Next.js 15, R
 
 ## 🌟 Features
 
+### Core Functionality
+
 - **Google Sheets-like Interface** - Click-to-edit cells with instant updates
 - **Expandable Rows** - Accordion-style details for comprehensive case information
 - **Smart Dropdowns** - Selectable options with clear/null functionality
 - **Auto-save** - All changes automatically persist to database
+- **Server-side Search & Filtering** - Fast search with debouncing, multi-filter support
+- **Pagination** - Configurable page sizes with total count
+
+### Real-Time Collaboration
+
+- **Live Updates** - Changes appear instantly across all users via SSE
+- **Field Locking** - Prevents concurrent edits with visual 🔒 indicators
+- **Optimistic Updates** - Instant UI feedback before server confirmation
+- **Debounced Saves** - 90% reduction in database queries
+- **Auto-Reconnection** - Graceful handling of network issues
+
+### Document Management
+
+- **PDF Generation** - Professional warranty case PDFs with company branding
+- **Email Integration** - Send warranty details with PDF attachment to customers
+- **Print Support** - Direct PDF download and printing
+
+### Settings & Configuration
+
+- **Branch Management** - Create, edit, delete branches with case counts
+- **Staff Management** - Manage staff with color badges and branch assignments
+- **Case Scope Management** - Configure warranty case categories
+- **Dynamic Sidebar** - Auto-updating navigation based on branches
+
+### Technical
+
 - **Type-safe** - Full TypeScript coverage from database to UI
-- **Clean Architecture** - Scalable, maintainable codebase
+- **Clean Architecture** - Scalable, maintainable codebase following Next.js 15 conventions
 - **Server Components** - Optimal performance with Next.js App Router
-- **Real-time Ready** - Architecture prepared for Socket.io integration
+- **Authentication** - Secure user authentication with Clerk
 
 ## 🚀 Quick Start
 
@@ -33,11 +61,14 @@ Visit [http://localhost:3000/branch/1](http://localhost:3000/branch/1)
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](./QUICK_START.md)** - Get up and running quickly
-- **[Implementation Summary](./IMPLEMENTATION_SUMMARY.md)** - Complete feature list and details
-- **[Architecture Diagram](./ARCHITECTURE_DIAGRAM.md)** - System architecture and data flow
-- **[Database Setup](./DATABASE_SETUP.md)** - Database configuration and seeding
-- **[Component Documentation](./app/branch/[id]/README.md)** - Detailed component guide
+- **[Quick Start Guide](./docs/QUICK_START.md)** - Get up and running quickly
+- **[Architecture](./docs/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Real-Time Collaboration](./docs/REALTIME.md)** - SSE implementation and testing guide
+- **[Implementation Summary](./docs/IMPLEMENTATION_SUMMARY.md)** - Complete feature list
+- **[Database Setup](./docs/DATABASE_SETUP.md)** - Database configuration and seeding
+- **[Email Configuration](./docs/EMAIL_CONFIGURATION.md)** - SMTP setup for email features
+- **[Settings Documentation](./docs/SETTINGS_DOCUMENTATION.md)** - Settings management guide
+- **[Next.js 15 Conventions](./docs/NEXT15_CONVENTIONS.md)** - Next.js patterns and best practices
 
 ## 🛠 Tech Stack
 
@@ -45,34 +76,58 @@ Visit [http://localhost:3000/branch/1](http://localhost:3000/branch/1)
 - **UI Components**: Shadcn UI, Lucide React
 - **State Management**: Zustand
 - **Backend**: Next.js Server Actions, Prisma ORM
+- **Real-Time**: Server-Sent Events (SSE)
 - **Database**: MySQL
-- **Authentication**: Clerk (optional)
+- **Authentication**: Clerk
+- **PDF Generation**: @react-pdf/renderer
+- **Email**: Nodemailer
+- **Forms**: React Hook Form
+- **Date Handling**: date-fns
 
 ## 📋 Main Features
 
 ### Interactive Table
 
-- Purchase Date column with formatted display
-- Service Number - click-to-edit
-- IDT PC? - dropdown (Yes/No/Not set)
-- Received By - staff selection dropdown
-- Serviced By - staff selection dropdown
-- Customer Name - click-to-edit
-- Customer Contact - click-to-edit
-- Status - dropdown (4 states)
+- **Purchase Date** - Formatted display with date picker
+- **Service Number** - Click-to-edit with field locking
+- **IDT PC?** - Dropdown (Yes/No/Not set)
+- **Received By** - Staff selection dropdown with color badges
+- **Serviced By** - Staff selection dropdown with color badges
+- **Customer Name** - Click-to-edit with field locking
+- **Customer Contact** - Click-to-edit with field locking
+- **Status** - Dropdown (Pending/In Progress/Completed/Cancelled)
+- **Actions** - Print PDF, Send Email buttons
 
 ### Expandable Row Details
 
-- Customer Email
-- Purchase Date
-- Address
-- Invoice
+- Customer Email (with validation)
+- Purchase Date (date picker)
+- Address (textarea)
+- Invoice Number
 - Received Items
-- PIN
-- Issues & Solutions
-- Status Description
-- Remarks
-- Cost & Locker
+- PIN Code
+- Issues Reported (textarea)
+- Solutions Provided (textarea)
+- Status Description (textarea)
+- Remarks (textarea)
+- Cost & Locker Number
+
+### Toolbar Features
+
+- **Search** - Real-time search across case fields (300ms debounce)
+- **Status Filter** - Filter by case status
+- **Staff Filter** - Filter by assigned staff
+- **IDT PC Filter** - Filter by IDT PC flag
+- **Date Range** - Filter by date range
+- **Create New** - Add new warranty cases
+- **Clear Filters** - Reset all filters
+
+### Real-Time Indicators
+
+- **Connection Status** - Green dot (connected), yellow (reconnecting), red (disconnected)
+- **Saving Status** - "Saving...", "Saved!", or "Synced!" indicators
+- **Field Locks** - 🔒 icon shows when another user is editing a field
+- **Tooltips** - Hover to see who is editing locked fields
 
 ## 🏗 Project Structure
 

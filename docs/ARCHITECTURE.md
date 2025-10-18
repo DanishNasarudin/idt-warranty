@@ -9,18 +9,25 @@ This Next.js 15 application follows a clean, scalable architecture with clear se
 ```
 /Users/danish/Documents/GitHub/idt-warranty/
 ├── app/                          # Next.js App Router
+│   ├── api/
+│   │   └── sse/
+│   │       └── warranty-updates/
+│   │           └── route.ts     # SSE endpoint for real-time updates
 │   ├── branch/
 │   │   └── [id]/
 │   │       ├── page.tsx         # Server Component - Warranty cases by branch
-│   │       ├── actions.ts       # Server Actions - Direct Prisma queries
+│   │       ├── actions.ts       # Server Actions - Direct Prisma queries + SSE broadcast
+│   │       ├── lock-actions.ts  # Field lock management
 │   │       ├── error.tsx        # Error boundary
-│   │       ├── loading.tsx      # Loading skeleton
-│   │       └── README.md        # Feature documentation
+│   │       └── loading.tsx      # Loading skeleton
 │   ├── dashboard/
 │   │   └── page.tsx             # Dashboard page
+│   ├── pdf-preview/
+│   │   ├── page.tsx             # PDF preview server page
+│   │   └── pdf-preview-client.tsx  # PDF preview client component
 │   ├── settings/
 │   │   ├── page.tsx             # Server Component - Settings management
-│   │   ├── actions.ts           # Server Actions - Branch & Staff CRUD
+│   │   ├── actions.ts           # Server Actions - Branch, Staff & CaseScope CRUD
 │   │   ├── error.tsx            # Error boundary
 │   │   └── loading.tsx          # Loading skeleton
 │   ├── sign-in/
@@ -51,14 +58,21 @@ This Next.js 15 application follows a clean, scalable architecture with clear se
 │       │   ├── index.ts         # Barrel exports
 │       │   ├── warranty-case-table.tsx
 │       │   ├── warranty-case-table-wrapper.tsx
-│       │   ├── editable-text-cell.tsx
-│       │   ├── dropdown-cell.tsx
-│       │   └── expandable-row-details.tsx
+│       │   ├── editable-text-cell.tsx      # With lock indicators
+│       │   ├── dropdown-cell.tsx           # With lock indicators
+│       │   ├── expandable-row-details.tsx
+│       │   ├── table-toolbar.tsx           # Search & filters
+│       │   ├── table-pagination.tsx
+│       │   ├── create-warranty-case-dialog.tsx
+│       │   ├── warranty-case-pdf.tsx       # PDF document generator
+│       │   ├── print-pdf-button.tsx
+│       │   └── send-email-button.tsx       # Email with PDF attachment
 │       │
 │       ├── settings/            # Settings feature
 │       │   ├── index.ts         # Barrel exports
 │       │   ├── branch-management.tsx
-│       │   └── staff-management.tsx
+│       │   ├── staff-management.tsx
+│       │   └── case-scope-management.tsx
 │       │
 │       ├── navbar.tsx           # App navigation bar
 │       ├── sidebar.tsx          # Sidebar navigation (client)
@@ -76,14 +90,21 @@ This Next.js 15 application follows a clean, scalable architecture with clear se
 │   ├── actions/
 │   │   └── sidebar-actions.ts   # Sidebar server actions
 │   ├── hooks/
-│   │   └── use-scroll-listener.tsx
+│   │   ├── use-scroll-listener.tsx
+│   │   ├── use-warranty-sync.ts  # Real-time sync hook
+│   │   └── use-debounce.ts      # Debounce utility
 │   ├── providers/
 │   │   ├── clerk-provider.tsx   # Clerk authentication provider
 │   │   └── theme-provider.tsx   # Dark mode provider
 │   ├── stores/
-│   │   └── warranty-case-store.ts  # Zustand store
+│   │   ├── warranty-case-store.ts           # Zustand store
+│   │   └── collaborative-editing-store.ts   # Real-time collaboration state
 │   ├── types/
-│   │   └── warranty.ts          # Warranty type definitions
+│   │   ├── warranty.ts          # Warranty type definitions
+│   │   ├── realtime.ts          # SSE types & locks
+│   │   └── search-params.ts     # Search & filter types
+│   ├── utils/
+│   │   └── sse-manager.ts       # Server-side SSE connection manager
 │   ├── providers.tsx            # Combined providers
 │   └── utils.ts                 # Utility functions (cn, etc.)
 │
@@ -341,6 +362,80 @@ app/settings/actions.ts  # Settings-specific types
 - `getSidebarData()` - Fetch branches for navigation
 
 **Pattern:** Server wrapper → Client component (dynamic data)
+
+### Real-Time Collaborative Editing
+
+**Technology:** Server-Sent Events (SSE)
+
+**Core Files:**
+
+- `app/api/sse/warranty-updates/route.ts` - SSE endpoint with auth
+- `lib/utils/sse-manager.ts` - Connection & lock manager (singleton)
+- `lib/hooks/use-warranty-sync.ts` - Main sync hook with debouncing
+- `lib/stores/collaborative-editing-store.ts` - Zustand state for collaboration
+- `lib/types/realtime.ts` - SSE message types & lock definitions
+- `app/branch/[id]/lock-actions.ts` - Lock acquisition/release
+
+**Features:**
+
+- **Field Locking**: Prevents concurrent edits with 30-second expiry
+- **Optimistic Updates**: Instant UI feedback before server confirmation
+- **Debounced Saves**: 1-second debounce on text fields (90% fewer DB calls)
+- **Auto-Reconnection**: Exponential backoff on connection loss
+- **Periodic Sync**: Full sync every 60 seconds for consistency
+- **Visual Indicators**: 🔒 lock icons, connection status, saving states
+
+**See:** [REALTIME.md](./REALTIME.md) for complete documentation
+
+### PDF Generation & Email
+
+**PDF Generation:**
+
+- `components/custom/warranty/warranty-case-pdf.tsx` - React PDF document
+- `components/custom/warranty/print-pdf-button.tsx` - Generate & download PDF
+- Uses `@react-pdf/renderer` for PDF creation
+- Includes company logo, warranty details, and formatted layout
+
+**Email Feature:**
+
+- `components/custom/warranty/send-email-button.tsx` - Send email with PDF
+- Uses `nodemailer` for SMTP email delivery
+- Attaches generated PDF to email
+- Only renders if customer email exists
+- Environment variables for SMTP configuration
+
+**See:** [EMAIL_CONFIGURATION.md](./EMAIL_CONFIGURATION.md) for setup
+
+### Search & Filtering
+
+**Location:** `components/custom/warranty/table-toolbar.tsx`
+
+**Features:**
+
+- Server-side search with 300ms debounce
+- Filter by status, staff, IDT PC flag
+- Filter by date range (start/end)
+- Clear all filters functionality
+- URL-based filter state (shareable links)
+
+**Implementation:**
+
+- Uses URL search params for filter state
+- Server actions handle filtering logic
+- Debounced search input to reduce server calls
+- `lib/hooks/use-debounce.ts` for debouncing
+
+### Pagination
+
+**Location:** `components/custom/warranty/table-pagination.tsx`
+
+**Features:**
+
+- Server-side pagination
+- Configurable page size (10, 20, 50, 100)
+- Total count display
+- Previous/Next navigation
+- URL-based pagination state
 
 ## Best Practices
 
