@@ -1,7 +1,7 @@
 "use client";
 
-import { deleteWarrantyCase } from "@/app/branch/[id]/actions";
-import { getAvailableTransferBranches } from "@/app/branch/[id]/transfer-actions";
+import { deleteWarrantyCase } from "@/app/(warranty)/branch/[id]/actions";
+import { getAvailableTransferBranches } from "@/app/(warranty)/branch/[id]/transfer-actions";
 import {
   AlertDialog,
   AlertDialogAction,

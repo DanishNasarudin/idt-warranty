@@ -1,6 +1,6 @@
 "use client";
 
-import { getBranchTransferStats } from "@/app/branch/[id]/transfer-actions";
+import { getBranchTransferStats } from "@/app/(warranty)/branch/[id]/transfer-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,

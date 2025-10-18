@@ -17,6 +17,7 @@ const mockWarrantyCase: WarrantyCaseWithRelations = {
   serviceNo: "WRN-001-2025",
   branchId: 1,
   scopeId: 1,
+  originBranchId: null,
   status: "IN_PROGRESS",
   customerName: "John Doe",
   customerContact: "+60123456789",
@@ -53,6 +54,9 @@ const mockWarrantyCase: WarrantyCaseWithRelations = {
     id: 1,
     code: "HQ",
     name: "Head Quarter - Puchong",
+    address: null,
+    officePhone: null,
+    whatsappPhone: null,
   },
   scope: {
     id: 1,

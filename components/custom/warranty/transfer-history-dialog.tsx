@@ -1,6 +1,6 @@
 "use client";
 
-import { getCaseTransferHistory } from "@/app/branch/[id]/transfer-actions";
+import { getCaseTransferHistory } from "@/app/(warranty)/branch/[id]/transfer-actions";
 import { StaffBadge } from "@/components/custom/staff-badge";
 import { Badge } from "@/components/ui/badge";
 import {

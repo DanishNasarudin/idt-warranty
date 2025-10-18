@@ -1,6 +1,6 @@
 "use client";
 
-import { transferCaseToBranch } from "@/app/branch/[id]/transfer-actions";
+import { transferCaseToBranch } from "@/app/(warranty)/branch/[id]/transfer-actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

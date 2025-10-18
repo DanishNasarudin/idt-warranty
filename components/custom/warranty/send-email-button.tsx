@@ -1,6 +1,6 @@
 "use client";
 
-import { sendWarrantyCaseEmail } from "@/app/branch/[id]/actions";
+import { sendWarrantyCaseEmail } from "@/app/(warranty)/branch/[id]/actions";
 import { Button } from "@/components/ui/button";
 import { WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { getBranchContactDetails } from "@/lib/utils/warranty-pdf-config";

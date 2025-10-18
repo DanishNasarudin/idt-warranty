@@ -3,7 +3,7 @@
 import {
   acquireFieldLock,
   releaseFieldLock,
-} from "@/app/branch/[id]/lock-actions";
+} from "@/app/(warranty)/branch/[id]/lock-actions";
 import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing-store";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import {
