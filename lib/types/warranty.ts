@@ -52,6 +52,9 @@ export type WarrantyCaseWithRelations = {
     code: string;
     name: string;
   } | null;
+  _count?: {
+    files: number;
+  };
 };
 
 export type WarrantyCaseUpdate = Partial<

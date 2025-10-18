@@ -386,7 +386,12 @@ export function ExpandableRowDetails({
                 }}
               />
             </div>
-            <ImageList caseId={case_.id} refreshTrigger={imageRefreshTrigger} />
+            <ImageList
+              caseId={case_.id}
+              refreshTrigger={imageRefreshTrigger}
+              isOpen={isExpanded}
+              hasImages={case_._count ? case_._count.files > 0 : undefined}
+            />
           </div>
 
           {/* Transfer Dialogs */}

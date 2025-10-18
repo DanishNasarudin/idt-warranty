@@ -120,6 +120,11 @@ export async function getWarrantyCasesByBranch(
             name: true,
           },
         },
+        _count: {
+          select: {
+            files: true,
+          },
+        },
       },
       orderBy,
       skip,

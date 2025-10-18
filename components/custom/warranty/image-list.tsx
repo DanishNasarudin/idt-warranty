@@ -29,9 +29,16 @@ interface CaseImage {
 interface ImageListProps {
   caseId: number;
   refreshTrigger?: number; // Used to trigger refresh from parent
+  isOpen?: boolean; // Only load images when accordion is open
+  hasImages?: boolean; // Whether this case has images (optional optimization)
 }
 
-export function ImageList({ caseId, refreshTrigger = 0 }: ImageListProps) {
+export function ImageList({
+  caseId,
+  refreshTrigger = 0,
+  isOpen = true,
+  hasImages,
+}: ImageListProps) {
   const [images, setImages] = useState<CaseImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
@@ -55,8 +62,16 @@ export function ImageList({ caseId, refreshTrigger = 0 }: ImageListProps) {
   };
 
   useEffect(() => {
-    loadImages();
-  }, [caseId, refreshTrigger]);
+    // Only load images when:
+    // 1. Accordion is open
+    // 2. Either hasImages is true/undefined (undefined means we don't know, so fetch anyway)
+    if (isOpen && (hasImages === undefined || hasImages === true)) {
+      loadImages();
+    } else if (!isOpen || hasImages === false) {
+      // Clear loading state if accordion is closed or we know there are no images
+      setIsLoading(false);
+    }
+  }, [caseId, refreshTrigger, isOpen, hasImages]);
 
   const handleDelete = async (imageId: number) => {
     setDeletingImageId(imageId);
@@ -95,7 +110,8 @@ export function ImageList({ caseId, refreshTrigger = 0 }: ImageListProps) {
     );
   }
 
-  if (images.length === 0) {
+  // Show "no images" if we explicitly know there are no images or if images array is empty
+  if (hasImages === false || images.length === 0) {
     return (
       <div className="text-sm text-muted-foreground text-center py-4">
         No images uploaded yet
