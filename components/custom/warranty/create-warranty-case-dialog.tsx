@@ -41,7 +41,6 @@ export type CreateWarrantyCaseFormData = {
   pin?: string;
   issues?: string;
   receivedByStaffId?: number;
-  locker?: number;
   idtPc?: boolean;
 };
 
@@ -63,7 +62,6 @@ export function CreateWarrantyCaseDialog({
     pin: "",
     issues: "",
     receivedByStaffId: undefined,
-    locker: undefined,
     idtPc: undefined,
   });
 
@@ -95,7 +93,6 @@ export function CreateWarrantyCaseDialog({
         pin: "",
         issues: "",
         receivedByStaffId: undefined,
-        locker: undefined,
         idtPc: undefined,
       });
       setOpen(false);

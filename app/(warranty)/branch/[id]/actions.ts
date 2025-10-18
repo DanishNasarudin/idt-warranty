@@ -294,7 +294,6 @@ export async function createWarrantyCase(
     pin?: string;
     issues?: string;
     receivedByStaffId?: number;
-    locker?: number;
     idtPc?: boolean;
   }
 ): Promise<WarrantyCaseWithRelations> {
@@ -333,7 +332,6 @@ export async function createWarrantyCase(
         pin: data.pin || null,
         issues: data.issues || null,
         receivedByStaffId: data.receivedByStaffId || null,
-        locker: data.locker || null,
         idtPc: data.idtPc ?? null,
         status: "IN_QUEUE",
         cost: 0,

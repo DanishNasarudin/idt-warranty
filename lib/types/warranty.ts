@@ -20,7 +20,6 @@ export type WarrantyCaseWithRelations = {
   statusDesc: string | null;
   remarks: string | null;
   cost: number;
-  locker: number | null;
   idtPc: boolean | null;
   receivedByStaffId: number | null;
   servicedByStaffId: number | null;

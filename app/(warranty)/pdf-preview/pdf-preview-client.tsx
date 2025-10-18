@@ -34,7 +34,6 @@ const mockWarrantyCase: WarrantyCaseWithRelations = {
   statusDesc: "Currently under inspection by technician",
   remarks: "Customer requested urgent service. VIP customer.",
   cost: 450.0,
-  locker: 5,
   idtPc: true,
   receivedByStaffId: 1,
   servicedByStaffId: 2,

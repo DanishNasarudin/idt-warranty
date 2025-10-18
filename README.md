@@ -110,7 +110,7 @@ Visit [http://localhost:3000/branch/1](http://localhost:3000/branch/1)
 - Solutions Provided (textarea)
 - Status Description (textarea)
 - Remarks (textarea)
-- Cost & Locker Number
+- Cost
 
 ### Toolbar Features
 

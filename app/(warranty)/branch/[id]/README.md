@@ -34,7 +34,6 @@ A comprehensive, Google Sheets-like data manipulation interface for warranty cas
    - Status Description
    - Remarks
    - Cost
-   - Locker
 
 4. **Auto-save Ready** - Architecture prepared for auto-save mechanism
 5. **Socket.io Ready** - Zustand store prepared for real-time updates

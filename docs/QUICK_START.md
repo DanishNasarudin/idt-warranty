@@ -64,7 +64,6 @@ Click the expand button (▶) to see:
 - Status Description
 - Remarks
 - Cost
-- Locker
 
 ## 💡 Usage Tips
 

@@ -48,7 +48,6 @@ A complete, production-ready data manipulation interface for warranty cases foll
   - Status Description (textarea)
   - Remarks (textarea)
   - Cost (number input)
-  - Locker (number input)
 
 ### 5. **Auto-save Architecture**
 
