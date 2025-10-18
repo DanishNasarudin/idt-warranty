@@ -30,6 +30,8 @@ import { cn } from "@/lib/utils";
 import { ArrowRightLeft, History, Lock, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ImageList } from "./image-list";
+import { ImageUpload } from "./image-upload";
 import { PrintPDFButton } from "./print-pdf-button";
 import { SendEmailButton } from "./send-email-button";
 import { TransferCaseDialog } from "./transfer-case-dialog";
@@ -74,6 +76,7 @@ export function ExpandableRowDetails({
   const [availableBranches, setAvailableBranches] = useState<BranchOption[]>(
     []
   );
+  const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
   const deleteCase = useWarrantyCaseStore((state) => state.deleteCase);
   const { isFieldLocked, fieldLocks } = useCollaborativeEditingStore();
 
@@ -357,6 +360,21 @@ export function ExpandableRowDetails({
             </div>
           );
         })}
+      </div>
+
+      {/* Images Section */}
+      <div className="border-t px-4 py-4 space-y-4">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Images</Label>
+          <ImageUpload
+            caseId={case_.id}
+            onUploadComplete={() => {
+              // Trigger image list refresh
+              setImageRefreshTrigger((prev) => prev + 1);
+            }}
+          />
+        </div>
+        <ImageList caseId={case_.id} refreshTrigger={imageRefreshTrigger} />
       </div>
 
       {/* Transfer Dialogs */}
