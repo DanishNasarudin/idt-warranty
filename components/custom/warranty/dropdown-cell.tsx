@@ -39,7 +39,7 @@ export function DropdownCell({
   renderValue,
 }: DropdownCellProps) {
   const [open, setOpen] = useState(false);
-  
+
   const displayValue = getDisplayValue
     ? getDisplayValue(value)
     : value?.toString() || "Not set";
@@ -65,7 +65,7 @@ export function DropdownCell({
           onPointerDown={(e) => {
             // Check if the click is on the X button
             const target = e.target as HTMLElement;
-            if (target.closest('[data-clear-button]')) {
+            if (target.closest("[data-clear-button]")) {
               e.preventDefault();
             }
           }}
