@@ -1,13 +1,11 @@
 "use server";
 
-import { PrismaClient } from "@/lib/generated/prisma";
+import prisma from "@/lib/prisma";
 import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
 import { revalidatePath } from "next/cache";
-
-const prisma = new PrismaClient();
 
 export async function getWarrantyCasesByBranch(
   branchId: number

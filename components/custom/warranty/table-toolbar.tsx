@@ -55,7 +55,7 @@ export function TableToolbar() {
             placeholder="Search warranty cases..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
+            className="pl-4"
           />
         </div>
 

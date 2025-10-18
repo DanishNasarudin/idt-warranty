@@ -12,6 +12,12 @@ import {
 import { CaseStatus } from "@/lib/generated/prisma";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
+import {
+  getIdtPcClassName,
+  getStaffBadgeClassName,
+  getStatusColor,
+  getStatusLabel,
+} from "@/lib/utils/status-colors";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect } from "react";
@@ -30,15 +36,31 @@ type WarrantyCaseTableProps = {
 };
 
 const STATUS_OPTIONS = [
-  { label: "In Queue", value: CaseStatus.IN_QUEUE },
-  { label: "In Progress", value: CaseStatus.IN_PROGRESS },
-  { label: "Waiting For", value: CaseStatus.WAITING_FOR },
-  { label: "Completed", value: CaseStatus.COMPLETED },
+  {
+    label: "In Queue",
+    value: CaseStatus.IN_QUEUE,
+    className: getStatusColor(CaseStatus.IN_QUEUE),
+  },
+  {
+    label: "In Progress",
+    value: CaseStatus.IN_PROGRESS,
+    className: getStatusColor(CaseStatus.IN_PROGRESS),
+  },
+  {
+    label: "Waiting For",
+    value: CaseStatus.WAITING_FOR,
+    className: getStatusColor(CaseStatus.WAITING_FOR),
+  },
+  {
+    label: "Completed",
+    value: CaseStatus.COMPLETED,
+    className: getStatusColor(CaseStatus.COMPLETED),
+  },
 ];
 
 const IDT_PC_OPTIONS = [
-  { label: "Yes", value: true },
-  { label: "No", value: false },
+  { label: "Yes", value: true, className: getIdtPcClassName(true) },
+  { label: "No", value: false, className: getIdtPcClassName(false) },
 ];
 
 export function WarrantyCaseTable({
@@ -96,22 +118,11 @@ export function WarrantyCaseTable({
     }
   };
 
-  const getStaffDisplayValue = (staffId: number | null) => {
-    if (!staffId) return "Not assigned";
-    const staff = staffOptions.find((s) => s.id === staffId);
-    return staff?.name || "Unknown";
-  };
-
   const getStaffBadge = (staffId: number | null) => {
     if (!staffId) return null;
     const staff = staffOptions.find((s) => s.id === staffId);
     if (!staff) return null;
     return <StaffBadge name={staff.name} color={staff.color} />;
-  };
-
-  const getStatusDisplayValue = (status: CaseStatus) => {
-    const option = STATUS_OPTIONS.find((s) => s.value === status);
-    return option?.label || status;
   };
 
   return (
@@ -132,7 +143,7 @@ export function WarrantyCaseTable({
         </TableHeader>
         <TableBody>
           {displayedCases.length === 0 ? (
-            <TableRow>
+            <TableRow key={"empty"}>
               <TableCell
                 colSpan={9}
                 className="text-center py-8 text-muted-foreground"
@@ -163,8 +174,8 @@ export function WarrantyCaseTable({
                     </TableCell>
 
                     <TableCell>
-                      {case_.purchaseDate
-                        ? format(new Date(case_.purchaseDate), "MMM dd, yyyy")
+                      {case_.createdAt
+                        ? format(new Date(case_.createdAt), "MMM dd, yyyy")
                         : "-"}
                     </TableCell>
 
@@ -198,6 +209,9 @@ export function WarrantyCaseTable({
                         getDisplayValue={(value) =>
                           value === null ? "Not set" : value ? "Yes" : "No"
                         }
+                        getBadgeClassName={(value) =>
+                          getIdtPcClassName(value as boolean | null)
+                        }
                       />
                     </TableCell>
 
@@ -207,6 +221,7 @@ export function WarrantyCaseTable({
                         options={staffOptions.map((s) => ({
                           label: s.name,
                           value: s.id,
+                          className: getStaffBadgeClassName(s.color),
                         }))}
                         onSelect={(value) =>
                           handleUpdate(case_.id, "receivedByStaffId", value)
@@ -218,14 +233,19 @@ export function WarrantyCaseTable({
                           );
                           return staff?.name || "Unknown";
                         }}
+                        getBadgeClassName={(value) => {
+                          if (!value) return "";
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return getStaffBadgeClassName(staff?.color);
+                        }}
                         renderValue={(value) => {
                           if (!value) return null;
                           const staff = staffOptions.find(
                             (s) => s.id === value
                           );
-                          return staff ? (
-                            <StaffBadge name={staff.name} color={staff.color} />
-                          ) : null;
+                          return staff?.name || null;
                         }}
                       />
                     </TableCell>
@@ -236,6 +256,7 @@ export function WarrantyCaseTable({
                         options={staffOptions.map((s) => ({
                           label: s.name,
                           value: s.id,
+                          className: getStaffBadgeClassName(s.color),
                         }))}
                         onSelect={(value) =>
                           handleUpdate(case_.id, "servicedByStaffId", value)
@@ -247,14 +268,19 @@ export function WarrantyCaseTable({
                           );
                           return staff?.name || "Unknown";
                         }}
+                        getBadgeClassName={(value) => {
+                          if (!value) return "";
+                          const staff = staffOptions.find(
+                            (s) => s.id === value
+                          );
+                          return getStaffBadgeClassName(staff?.color);
+                        }}
                         renderValue={(value) => {
                           if (!value) return null;
                           const staff = staffOptions.find(
                             (s) => s.id === value
                           );
-                          return staff ? (
-                            <StaffBadge name={staff.name} color={staff.color} />
-                          ) : null;
+                          return staff?.name || null;
                         }}
                       />
                     </TableCell>
@@ -308,14 +334,17 @@ export function WarrantyCaseTable({
                         }
                         allowNull={false}
                         getDisplayValue={(value) =>
-                          getStatusDisplayValue(value as CaseStatus)
+                          getStatusLabel(value as CaseStatus)
+                        }
+                        getBadgeClassName={(value) =>
+                          getStatusColor(value as CaseStatus)
                         }
                       />
                     </TableCell>
                   </TableRow>
 
                   {isExpanded && (
-                    <TableRow>
+                    <TableRow key={`accordion-${case_.id}`}>
                       <TableCell colSpan={9} className="p-0">
                         <ExpandableRowDetails
                           case_={case_}

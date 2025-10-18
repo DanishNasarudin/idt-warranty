@@ -69,10 +69,7 @@ export function CaseScopeManagement({
     e.preventDefault();
     try {
       const newCaseScope = await onCreateCaseScope(formData);
-      setCaseScopes([
-        ...caseScopes,
-        { ...newCaseScope, _count: { cases: 0 } },
-      ]);
+      setCaseScopes([...caseScopes, { ...newCaseScope, _count: { cases: 0 } }]);
       toast.success("Case scope created successfully");
       setIsCreateOpen(false);
       setFormData({ code: "" });
@@ -191,14 +188,19 @@ export function CaseScopeManagement({
           <TableBody>
             {caseScopes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={3}
+                  className="text-center text-muted-foreground"
+                >
                   No case scopes found. Add one to get started.
                 </TableCell>
               </TableRow>
             ) : (
               caseScopes.map((caseScope) => (
                 <TableRow key={caseScope.id}>
-                  <TableCell className="font-medium">{caseScope.code}</TableCell>
+                  <TableCell className="font-medium">
+                    {caseScope.code}
+                  </TableCell>
                   <TableCell>{caseScope._count.cases}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -226,7 +228,10 @@ export function CaseScopeManagement({
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingCaseScope} onOpenChange={(open) => !open && closeEditDialog()}>
+      <Dialog
+        open={!!editingCaseScope}
+        onOpenChange={(open) => !open && closeEditDialog()}
+      >
         <DialogContent>
           <form onSubmit={handleUpdate}>
             <DialogHeader>
@@ -268,9 +273,9 @@ export function CaseScopeManagement({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete the case scope &quot;{deletingCaseScope?.code}&quot;.
-              This action cannot be undone. Case scopes with associated warranty
-              cases cannot be deleted.
+              This will delete the case scope &quot;{deletingCaseScope?.code}
+              &quot;. This action cannot be undone. Case scopes with associated
+              warranty cases cannot be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

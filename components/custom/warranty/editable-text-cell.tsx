@@ -59,7 +59,7 @@ export function EditableTextCell({
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={cn("h-8 border-primary", className)}
+        className={cn("h-8 border-primary px-1", className)}
       />
     );
   }
@@ -68,7 +68,7 @@ export function EditableTextCell({
     <div
       onClick={onEditStart}
       className={cn(
-        "h-full w-full px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors rounded-sm",
+        "h-full w-full cursor-pointer hover:bg-accent/50 transition-colors rounded-sm",
         className
       )}
     >

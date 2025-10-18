@@ -1,9 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@/lib/generated/prisma";
+import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-
-const prisma = new PrismaClient();
 
 // ============= BRANCH ACTIONS =============
 
@@ -293,10 +291,7 @@ export async function createCaseScope(data: { code: string }) {
   }
 }
 
-export async function updateCaseScope(
-  id: number,
-  data: { code?: string }
-) {
+export async function updateCaseScope(id: number, data: { code?: string }) {
   try {
     const caseScope = await prisma.caseScope.update({
       where: { id },
@@ -325,6 +320,8 @@ export async function deleteCaseScope(id: number) {
     revalidatePath("/settings");
   } catch (error) {
     console.error("Error deleting case scope:", error);
-    throw new Error("Failed to delete case scope. It may have associated data.");
+    throw new Error(
+      "Failed to delete case scope. It may have associated data."
+    );
   }
 }

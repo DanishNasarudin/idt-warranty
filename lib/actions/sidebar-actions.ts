@@ -1,8 +1,6 @@
 "use server";
 
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "../prisma";
 
 export async function getBranchesForSidebar() {
   try {

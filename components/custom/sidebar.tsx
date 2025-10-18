@@ -48,9 +48,9 @@ export default function SidebarClient({ branches }: SidebarClientProps) {
         false: { width: 0 },
       }}
       initial={String(open)}
-      className="flex flex-col max-w-[200px] min-w-min min-h-screen h-full w-full border-r bg-background overflow-y-auto overflow-x-hidden"
+      className="flex flex-col max-w-[200px] min-w-min min-h-screen h-full w-full border-r bg-background overflow-y-auto overflow-x-hidden sticky top-0"
     >
-      <div className="flex flex-col sticky top-0 bg-background">
+      <div className="flex flex-col top-0 bg-background">
         <div className="flex justify-end p-2 z-[1] relative">
           <div
             data-state={open}
