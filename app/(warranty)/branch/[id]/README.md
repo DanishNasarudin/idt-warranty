@@ -136,6 +136,7 @@ The architecture is prepared for real-time collaboration:
    ```
 
 2. **Client Setup** (TODO)
+
    ```typescript
    // In warranty-case-table.tsx
    useEffect(() => {
