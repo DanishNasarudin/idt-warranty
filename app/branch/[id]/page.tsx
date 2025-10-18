@@ -1,6 +1,5 @@
 import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-case-table-wrapper";
-import { Toaster } from "@/components/ui/sonner";
 import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
 import {
@@ -86,7 +85,6 @@ export default async function Page({
           onCreateCase={handleCreateCase}
         />
       </div>
-      <Toaster />
     </>
   );
 }

@@ -1,7 +1,14 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type EditableTextCellProps = {
@@ -11,6 +18,8 @@ type EditableTextCellProps = {
   onEditStart: () => void;
   onEditEnd: () => void;
   className?: string;
+  isLocked?: boolean;
+  lockedBy?: string;
 };
 
 export function EditableTextCell({
@@ -20,6 +29,8 @@ export function EditableTextCell({
   onEditStart,
   onEditEnd,
   className,
+  isLocked = false,
+  lockedBy,
 }: EditableTextCellProps) {
   const [localValue, setLocalValue] = useState(value || "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,8 +43,11 @@ export function EditableTextCell({
   }, [isEditing]);
 
   useEffect(() => {
-    setLocalValue(value || "");
-  }, [value]);
+    // Only update local value if not currently editing
+    if (!isEditing) {
+      setLocalValue(value || "");
+    }
+  }, [value, isEditing]);
 
   const handleBlur = () => {
     if (localValue !== (value || "")) {
@@ -51,6 +65,12 @@ export function EditableTextCell({
     }
   };
 
+  const handleClick = () => {
+    if (!isLocked) {
+      onEditStart();
+    }
+  };
+
   if (isEditing) {
     return (
       <Input
@@ -60,19 +80,45 @@ export function EditableTextCell({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={cn("h-8 border-primary px-1", className)}
+        disabled={isLocked}
       />
     );
   }
 
-  return (
+  const cellContent = (
     <div
-      onClick={onEditStart}
+      onClick={handleClick}
       className={cn(
-        "h-full w-full cursor-pointer hover:bg-accent/50 transition-colors rounded-sm",
+        "h-full w-full rounded-sm transition-colors relative",
+        isLocked
+          ? "cursor-not-allowed bg-muted/50"
+          : "cursor-pointer hover:bg-accent/50",
         className
       )}
     >
-      {value || <span className="text-muted-foreground italic">Empty</span>}
+      <div className="flex items-center gap-1 h-full">
+        {isLocked && (
+          <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+        )}
+        <span className={cn(isLocked && "text-muted-foreground")}>
+          {value || <span className="italic">Empty</span>}
+        </span>
+      </div>
     </div>
   );
+
+  if (isLocked && lockedBy) {
+    return (
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>{cellContent}</TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            <p>Locked by {lockedBy}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cellContent;
 }

@@ -15,10 +15,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing-store";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import { WarrantyCaseWithRelations } from "@/lib/types/warranty";
-import { Trash2 } from "lucide-react";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Lock, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PrintPDFButton } from "./print-pdf-button";
 import { SendEmailButton } from "./send-email-button";
@@ -26,11 +34,17 @@ import { SendEmailButton } from "./send-email-button";
 type ExpandableRowDetailsProps = {
   case_: WarrantyCaseWithRelations;
   onUpdate: (updates: Partial<WarrantyCaseWithRelations>) => void;
+  onAcquireFieldLock?: (caseId: number, field: string) => Promise<boolean>;
+  onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
+  userId?: string;
 };
 
 export function ExpandableRowDetails({
   case_,
   onUpdate,
+  onAcquireFieldLock,
+  onReleaseFieldLock,
+  userId = "",
 }: ExpandableRowDetailsProps) {
   const [localData, setLocalData] = useState({
     customerEmail: case_.customerEmail || "",
@@ -48,13 +62,59 @@ export function ExpandableRowDetails({
     cost: case_.cost?.toString() || "0",
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const deleteCase = useWarrantyCaseStore((state) => state.deleteCase);
+  const { isFieldLocked, fieldLocks } = useCollaborativeEditingStore();
+
+  // Sync local data with case_ prop changes (from real-time updates)
+  // but only update fields that are not currently being edited (not focused)
+  useEffect(() => {
+    const activeElement = document.activeElement;
+    const isEditingField = activeElement?.id?.startsWith(`${case_.id}-`);
+
+    if (!isEditingField) {
+      setLocalData({
+        customerEmail: case_.customerEmail || "",
+        address: case_.address || "",
+        purchaseDate: case_.purchaseDate
+          ? new Date(case_.purchaseDate).toISOString().split("T")[0]
+          : "",
+        invoice: case_.invoice || "",
+        receivedItems: case_.receivedItems || "",
+        pin: case_.pin || "",
+        issues: case_.issues || "",
+        solutions: case_.solutions || "",
+        statusDesc: case_.statusDesc || "",
+        remarks: case_.remarks || "",
+        cost: case_.cost?.toString() || "0",
+      });
+    }
+  }, [case_]);
 
   const handleChange = (field: string, value: string) => {
     setLocalData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleBlur = (field: string) => {
+  const handleFocus = async (field: string) => {
+    setFocusedField(field);
+
+    // Try to acquire lock if locking is enabled
+    if (onAcquireFieldLock) {
+      const acquired = await onAcquireFieldLock(case_.id, field);
+      if (!acquired) {
+        // Lock acquisition failed, blur the field
+        const element = document.getElementById(`${case_.id}-${field}`);
+        if (element) {
+          (element as HTMLInputElement | HTMLTextAreaElement).blur();
+        }
+        return;
+      }
+    }
+  };
+
+  const handleBlur = async (field: string) => {
+    setFocusedField(null);
+
     const value = localData[field as keyof typeof localData];
     const currentValue = case_[field as keyof WarrantyCaseWithRelations];
 
@@ -70,6 +130,28 @@ export function ExpandableRowDetails({
 
       onUpdate({ [field]: updateValue });
     }
+
+    // Release lock if locking is enabled
+    if (onReleaseFieldLock) {
+      await onReleaseFieldLock(case_.id, field);
+    }
+  };
+
+  const getFieldLockStatus = (field: string) => {
+    if (!userId) return { isLocked: false, lockedBy: undefined };
+
+    const lock = isFieldLocked(case_.id, field, userId);
+    const status = {
+      isLocked: lock !== null,
+      lockedBy: lock?.userName,
+    };
+
+    // Debug logging
+    if (lock) {
+      console.log(`[Lock Status] Case ${case_.id}, Field ${field}:`, status);
+    }
+
+    return status;
   };
 
   const handleDelete = async () => {
@@ -164,33 +246,61 @@ export function ExpandableRowDetails({
 
       {/* Existing Fields Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-        {fields.map((field) => (
-          <div key={field.name} className="space-y-2">
-            <Label
-              htmlFor={`${case_.id}-${field.name}`}
-              className="text-sm font-medium"
-            >
-              {field.label}
-            </Label>
-            {field.multiline ? (
-              <textarea
-                id={`${case_.id}-${field.name}`}
-                value={localData[field.name as keyof typeof localData]}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                onBlur={() => handleBlur(field.name)}
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            ) : (
-              <Input
-                id={`${case_.id}-${field.name}`}
-                type={field.type}
-                value={localData[field.name as keyof typeof localData]}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                onBlur={() => handleBlur(field.name)}
-              />
-            )}
-          </div>
-        ))}
+        {fields.map((field) => {
+          const lockStatus = getFieldLockStatus(field.name);
+          const fieldValue = localData[field.name as keyof typeof localData];
+
+          return (
+            <div key={field.name} className="space-y-2">
+              <Label
+                htmlFor={`${case_.id}-${field.name}`}
+                className={cn(
+                  "text-sm font-medium flex items-center gap-1",
+                  lockStatus.isLocked && "text-muted-foreground"
+                )}
+              >
+                {lockStatus.isLocked && (
+                  <TooltipProvider delayDuration={100}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Lock className="h-3 w-3" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs">
+                        <p>Locked by {lockStatus.lockedBy}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {field.label}
+              </Label>
+              {field.multiline ? (
+                <textarea
+                  id={`${case_.id}-${field.name}`}
+                  value={fieldValue}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  onFocus={() => handleFocus(field.name)}
+                  onBlur={() => handleBlur(field.name)}
+                  disabled={lockStatus.isLocked}
+                  className={cn(
+                    "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    lockStatus.isLocked && "bg-muted/50"
+                  )}
+                />
+              ) : (
+                <Input
+                  id={`${case_.id}-${field.name}`}
+                  type={field.type}
+                  value={fieldValue}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  onFocus={() => handleFocus(field.name)}
+                  onBlur={() => handleBlur(field.name)}
+                  disabled={lockStatus.isLocked}
+                  className={cn(lockStatus.isLocked && "bg-muted/50")}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -158,11 +158,25 @@ export async function updateWarrantyCase(
       data: updateData,
     });
 
+    // Import sseManager dynamically to avoid initialization issues
+    const { sseManager } = await import("@/lib/utils/sse-manager");
+    const { auth } = await import("@clerk/nextjs/server");
+    const { userId } = await auth();
+
+    // Broadcast update to other users via SSE
+    if (userId) {
+      sseManager.broadcast(
+        branchId,
+        {
+          type: "case-updated",
+          data: { caseId, updates },
+        },
+        userId // Exclude the user who made the update
+      );
+    }
+
     // Revalidate the page to reflect changes
     revalidatePath(`/branch/${branchId}`);
-
-    // TODO: Emit socket.io event here for real-time updates
-    // Example: socketServer.to(`branch-${branchId}`).emit('caseUpdated', { caseId, updates });
   } catch (error) {
     console.error("Error updating warranty case:", error);
     throw new Error("Failed to update warranty case");

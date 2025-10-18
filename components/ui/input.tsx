@@ -12,7 +12,7 @@ function Input({
   return (
     <div
       className={cn(
-        "[&:has(:focus-visible)]:ring-ring flex flex-row-reverse items-center px-2 [&:has(:focus-visible)]:ring-1 rounded-md border-input border bg-transparent shadow-sm [&:has(:disabled)]:cursor-not-allowed [&:has(:disabled)]:opacity-50 transition-colors",
+        "[&:has(:focus-visible)]:ring-ring flex flex-row-reverse items-center px-2 [&:has(:focus-visible)]:ring-1 rounded-md border-input border bg-background shadow-sm [&:has(:disabled)]:cursor-not-allowed [&:has(:disabled)]:opacity-50 transition-colors",
         className
       )}
     >

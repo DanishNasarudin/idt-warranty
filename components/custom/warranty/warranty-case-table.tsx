@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CaseStatus } from "@/lib/generated/prisma";
+import { useCollaborativeEditingStore } from "@/lib/stores/collaborative-editing-store";
 import { useWarrantyCaseStore } from "@/lib/stores/warranty-case-store";
 import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import {
@@ -33,6 +34,10 @@ type WarrantyCaseTableProps = {
     caseId: number,
     updates: Partial<WarrantyCaseWithRelations>
   ) => Promise<void>;
+  onUpdateField?: (caseId: number, field: string, value: any) => Promise<void>;
+  onAcquireFieldLock?: (caseId: number, field: string) => Promise<boolean>;
+  onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
+  userId?: string;
 };
 
 const STATUS_OPTIONS = [
@@ -67,8 +72,13 @@ export function WarrantyCaseTable({
   initialCases,
   initialStaff,
   onUpdateCase,
+  onUpdateField,
+  onAcquireFieldLock,
+  onReleaseFieldLock,
+  userId = "",
 }: WarrantyCaseTableProps) {
   const {
+    cases,
     staffOptions,
     expandedRows,
     editingCell,
@@ -79,6 +89,9 @@ export function WarrantyCaseTable({
     setEditingCell,
   } = useWarrantyCaseStore();
 
+  const { isFieldLocked, getDisplayValue, fieldLocks } =
+    useCollaborativeEditingStore();
+
   useEffect(() => {
     setCases(initialCases);
   }, [initialCases, setCases]);
@@ -87,20 +100,73 @@ export function WarrantyCaseTable({
     setStaffOptions(initialStaff);
   }, [initialStaff, setStaffOptions]);
 
-  // Display all initial cases (already filtered/sorted/paginated from server)
-  const displayedCases = initialCases;
+  // Display cases with optimistic updates merged in
+  const displayedCases = cases.map((case_) => {
+    const optimisticData = getDisplayValue(case_.id);
+    return { ...case_, ...optimisticData };
+  });
 
   const handleUpdate = async (caseId: number, field: string, value: any) => {
-    // Optimistic update
+    // Optimistic update - immediate UI feedback
     updateCase(caseId, { [field]: value });
 
+    // Use debounced update if available
+    if (onUpdateField) {
+      await onUpdateField(caseId, field, value);
+      return;
+    }
+
+    // Fallback to immediate update
     try {
-      // Call server action for auto-save
       await onUpdateCase(caseId, { [field]: value });
     } catch (error) {
       console.error("Failed to update case:", error);
-      // TODO: Revert optimistic update or show error toast
+      // Revert optimistic update on error
+      const originalCase = cases.find((c) => c.id === caseId);
+      if (originalCase) {
+        updateCase(caseId, {
+          [field]: originalCase[field as keyof WarrantyCaseWithRelations],
+        });
+      }
     }
+  };
+
+  const handleEditStart = async (caseId: number, field: string) => {
+    // Try to acquire lock if locking is enabled
+    if (onAcquireFieldLock) {
+      const acquired = await onAcquireFieldLock(caseId, field);
+      if (!acquired) {
+        return; // Lock acquisition failed
+      }
+    }
+
+    setEditingCell({ caseId, field });
+  };
+
+  const handleEditEnd = async (caseId: number, field: string) => {
+    setEditingCell(null);
+
+    // Release lock if locking is enabled
+    if (onReleaseFieldLock) {
+      await onReleaseFieldLock(caseId, field);
+    }
+  };
+
+  const getFieldLockStatus = (caseId: number, field: string) => {
+    if (!userId) return { isLocked: false, lockedBy: undefined };
+
+    const lock = isFieldLocked(caseId, field, userId);
+    const status = {
+      isLocked: lock !== null,
+      lockedBy: lock?.userName,
+    };
+
+    // Debug logging
+    if (lock) {
+      console.log(`[Lock Status] Case ${caseId}, Field ${field}:`, status);
+    }
+
+    return status;
   };
 
   const handleMultiFieldUpdate = async (
@@ -159,6 +225,15 @@ export function WarrantyCaseTable({
           ) : (
             displayedCases.map((case_) => {
               const isExpanded = expandedRows.has(case_.id);
+              const serviceNoLock = getFieldLockStatus(case_.id, "serviceNo");
+              const customerNameLock = getFieldLockStatus(
+                case_.id,
+                "customerName"
+              );
+              const customerContactLock = getFieldLockStatus(
+                case_.id,
+                "customerContact"
+              );
 
               return (
                 <Fragment key={case_.id}>
@@ -195,12 +270,11 @@ export function WarrantyCaseTable({
                           editingCell?.field === "serviceNo"
                         }
                         onEditStart={() =>
-                          setEditingCell({
-                            caseId: case_.id,
-                            field: "serviceNo",
-                          })
+                          handleEditStart(case_.id, "serviceNo")
                         }
-                        onEditEnd={() => setEditingCell(null)}
+                        onEditEnd={() => handleEditEnd(case_.id, "serviceNo")}
+                        isLocked={serviceNoLock.isLocked}
+                        lockedBy={serviceNoLock.lockedBy}
                       />
                     </TableCell>
 
@@ -301,12 +375,13 @@ export function WarrantyCaseTable({
                           editingCell?.field === "customerName"
                         }
                         onEditStart={() =>
-                          setEditingCell({
-                            caseId: case_.id,
-                            field: "customerName",
-                          })
+                          handleEditStart(case_.id, "customerName")
                         }
-                        onEditEnd={() => setEditingCell(null)}
+                        onEditEnd={() =>
+                          handleEditEnd(case_.id, "customerName")
+                        }
+                        isLocked={customerNameLock.isLocked}
+                        lockedBy={customerNameLock.lockedBy}
                       />
                     </TableCell>
 
@@ -321,12 +396,13 @@ export function WarrantyCaseTable({
                           editingCell?.field === "customerContact"
                         }
                         onEditStart={() =>
-                          setEditingCell({
-                            caseId: case_.id,
-                            field: "customerContact",
-                          })
+                          handleEditStart(case_.id, "customerContact")
                         }
-                        onEditEnd={() => setEditingCell(null)}
+                        onEditEnd={() =>
+                          handleEditEnd(case_.id, "customerContact")
+                        }
+                        isLocked={customerContactLock.isLocked}
+                        lockedBy={customerContactLock.lockedBy}
                       />
                     </TableCell>
 
@@ -356,6 +432,9 @@ export function WarrantyCaseTable({
                           onUpdate={(updates) =>
                             handleMultiFieldUpdate(case_.id, updates)
                           }
+                          onAcquireFieldLock={onAcquireFieldLock}
+                          onReleaseFieldLock={onReleaseFieldLock}
+                          userId={userId}
                         />
                       </TableCell>
                     </TableRow>

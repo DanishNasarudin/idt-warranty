@@ -9,4 +9,4 @@ use shadcn component where possible.
 
 you may use zustand as the state manager if required.
 
-not required to create document summary.
+not required to create summary document.

@@ -3,7 +3,6 @@ import {
   CaseScopeManagement,
   StaffManagement,
 } from "@/components/custom/settings";
-import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   createBranch as createBranchAction,
@@ -133,7 +132,6 @@ export default async function SettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
-      <Toaster />
     </>
   );
 }

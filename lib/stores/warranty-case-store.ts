@@ -70,10 +70,19 @@ export const useWarrantyCaseStore = create<WarrantyCaseStore>((set, get) => ({
 
   setEditingCell: (cell) => set({ editingCell: cell }),
 
-  handleRemoteUpdate: (caseId, updates) =>
-    set((state) => ({
-      cases: state.cases.map((c) =>
+  handleRemoteUpdate: (caseId, updates) => {
+    console.log("[Store] handleRemoteUpdate called:", { caseId, updates });
+    const currentCases = get().cases;
+    console.log("[Store] Current cases count:", currentCases.length);
+    const targetCase = currentCases.find((c) => c.id === caseId);
+    console.log("[Store] Target case found:", targetCase ? "yes" : "no");
+
+    set((state) => {
+      const updatedCases = state.cases.map((c) =>
         c.id === caseId ? { ...c, ...updates } : c
-      ),
-    })),
+      );
+      console.log("[Store] Updated cases count:", updatedCases.length);
+      return { cases: updatedCases };
+    });
+  },
 }));
