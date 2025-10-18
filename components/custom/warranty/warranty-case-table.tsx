@@ -20,7 +20,7 @@ import {
 } from "@/lib/utils/status-colors";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import { StaffBadge } from "../staff-badge";
 import { DropdownCell } from "./dropdown-cell";
 import { EditableTextCell } from "./editable-text-cell";
@@ -161,8 +161,8 @@ export function WarrantyCaseTable({
               const isExpanded = expandedRows.has(case_.id);
 
               return (
-                <>
-                  <TableRow key={case_.id} className="hover:bg-muted/50">
+                <Fragment key={case_.id}>
+                  <TableRow className="hover:bg-muted/50">
                     <TableCell className="py-1 px-1">
                       <Button
                         variant="ghost"
@@ -360,7 +360,7 @@ export function WarrantyCaseTable({
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })
           )}
