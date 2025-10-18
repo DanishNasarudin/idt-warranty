@@ -97,7 +97,7 @@ model WarrantyCase {
 
   branchId Int
   scopeId  Int
-  branch   Branch    @relation(fields: [branchId], references: [id], onUpdate: Cascade)
+  branch   Branch    @relation(fields: [branchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   scope    CaseScope @relation(fields: [scopeId], references: [id], onUpdate: Cascade)
 
   // Track the original branch where this case was first created
@@ -199,10 +199,10 @@ model CaseTransfer {
   case   WarrantyCase @relation(fields: [caseId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   fromBranchId Int
-  fromBranch   Branch @relation("TransferFromBranch", fields: [fromBranchId], references: [id], onUpdate: Cascade)
+  fromBranch   Branch @relation("TransferFromBranch", fields: [fromBranchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   toBranchId Int
-  toBranch   Branch @relation("TransferToBranch", fields: [toBranchId], references: [id], onUpdate: Cascade)
+  toBranch   Branch @relation("TransferToBranch", fields: [toBranchId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   transferredByStaffId Int?
   transferredBy        Staff? @relation("TransferredByStaff", fields: [transferredByStaffId], references: [id], onUpdate: SetNull, onDelete: SetNull)

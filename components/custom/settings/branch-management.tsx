@@ -83,6 +83,7 @@ export function BranchManagement({
   const [deletingBranch, setDeletingBranch] = useState<BranchWithCounts | null>(
     null
   );
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
 
   const [formData, setFormData] = useState({
     code: "",
@@ -151,13 +152,21 @@ export function BranchManagement({
   const handleDelete = async () => {
     if (!deletingBranch) return;
 
+    // Verify confirmation text
+    const expectedText = `Yes I want to delete branch ${deletingBranch.name}`;
+    if (deleteConfirmationText !== expectedText) {
+      toast.error("Confirmation text does not match. Please type exactly as shown.");
+      return;
+    }
+
     try {
       await onDeleteBranch(deletingBranch.id);
       setBranches(branches.filter((b) => b.id !== deletingBranch.id));
       toast.success("Branch deleted successfully");
       setDeletingBranch(null);
+      setDeleteConfirmationText("");
     } catch (error) {
-      toast.error("Failed to delete branch. It may have associated data.");
+      toast.error("Failed to delete branch.");
     }
   };
 
@@ -445,32 +454,75 @@ export function BranchManagement({
       {/* Delete Confirmation */}
       <AlertDialog
         open={!!deletingBranch}
-        onOpenChange={(open) => !open && setDeletingBranch(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingBranch(null);
+            setDeleteConfirmationText("");
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the branch &quot;
-              {deletingBranch?.name}&quot;. This action cannot be undone.
+            <AlertDialogTitle>Delete Branch - Confirmation Required</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <span className="block">
+                You are about to permanently delete the branch &quot;
+                <span className="font-semibold text-foreground">
+                  {deletingBranch?.name}
+                </span>
+                &quot;.
+              </span>
+              
               {deletingBranch &&
                 (deletingBranch._count.staff > 0 ||
                   deletingBranch._count.cases > 0) && (
-                  <span className="block mt-2 text-destructive font-medium">
-                    Warning: This branch has {deletingBranch._count.staff} staff
-                    member(s) and {deletingBranch._count.cases} warranty
-                    case(s).
+                  <span className="block p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+                    <span className="block font-semibold text-destructive mb-1">
+                      ⚠️ Warning: This will cascade delete:
+                    </span>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-destructive/90">
+                      {deletingBranch._count.staff > 0 && (
+                        <li>{deletingBranch._count.staff} staff assignment(s)</li>
+                      )}
+                      {deletingBranch._count.cases > 0 && (
+                        <li>{deletingBranch._count.cases} warranty case(s) and all related data</li>
+                      )}
+                    </ul>
                   </span>
                 )}
+              
+              <span className="block pt-2">
+                To confirm, please type exactly:{" "}
+                <span className="block mt-2 p-2 bg-muted rounded font-mono text-sm font-semibold text-foreground">
+                  Yes I want to delete branch {deletingBranch?.name}
+                </span>
+              </span>
+
+              <div className="pt-2">
+                <Input
+                  placeholder="Type the confirmation text here..."
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  className="font-mono"
+                  autoComplete="off"
+                />
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteConfirmationText("")}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive hover:bg-destructive/90"
+              disabled={
+                !deletingBranch ||
+                deleteConfirmationText !==
+                  `Yes I want to delete branch ${deletingBranch?.name}`
+              }
             >
-              Delete
+              Delete Branch
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

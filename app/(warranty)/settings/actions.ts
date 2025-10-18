@@ -114,6 +114,10 @@ export async function updateBranch(
 
 export async function deleteBranch(id: number) {
   try {
+    // Cascade delete will automatically remove:
+    // - WarrantyCase records (and their history, files, transfers)
+    // - StaffOnBranch assignments
+    // - CaseTransfer records (from/to this branch)
     await prisma.branch.delete({
       where: { id },
     });
@@ -121,7 +125,7 @@ export async function deleteBranch(id: number) {
     revalidatePath("/", "layout"); // Revalidate sidebar
   } catch (error) {
     console.error("Error deleting branch:", error);
-    throw new Error("Failed to delete branch. It may have associated data.");
+    throw new Error("Failed to delete branch.");
   }
 }
 

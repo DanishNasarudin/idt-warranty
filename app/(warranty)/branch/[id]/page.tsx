@@ -1,6 +1,6 @@
 import { CreateWarrantyCaseFormData } from "@/components/custom/warranty/create-warranty-case-dialog";
 import { WarrantyCaseTableWrapper } from "@/components/custom/warranty/warranty-case-table-wrapper";
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/design-system";
 import { WarrantyCaseFilters } from "@/lib/types/search-params";
 import { WarrantyCaseUpdate } from "@/lib/types/warranty";
 import { History } from "lucide-react";
@@ -85,10 +85,12 @@ export default async function Page({
             </p>
           </div>
           <Link href={`/branch/${branchId}/history`}>
-            <Button variant="outline">
-              <History className="h-4 w-4 mr-2" />
-              View History
-            </Button>
+            <ActionButton
+              icon={History}
+              label="View History"
+              action={"custom"}
+              variant="outline"
+            />
           </Link>
         </div>
 

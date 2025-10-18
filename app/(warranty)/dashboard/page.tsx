@@ -6,7 +6,7 @@ import { DashboardDateFilter } from "@/components/custom/dashboard/dashboard-dat
 import { StaffMetricsCard } from "@/components/custom/dashboard/staff-metrics-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { DateRangeFilter, DateRangePreset } from "@/lib/types/search-params";
-import { getDashboardStats } from "./dashboard-actions";
+import { getDashboardStats } from "./actions";
 
 type PageProps = {
   searchParams: Promise<{
