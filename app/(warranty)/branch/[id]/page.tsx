@@ -33,14 +33,13 @@ export default async function Page({
   const branchId = parseInt((await params).id);
   const resolvedSearchParams = await searchParams;
 
-  const branch = await getBranch(branchId);
-
   // Parse search params with defaults using utility function
   const filters: WarrantyCaseFilters =
     parseWarrantyCaseFilters(resolvedSearchParams);
 
-  // Fetch initial data on the server with filters
-  const [casesData, staff] = await Promise.all([
+  // Fetch all data in parallel to ensure consistent Prisma client initialization
+  const [branch, casesData, staff] = await Promise.all([
+    getBranch(branchId),
     getWarrantyCasesByBranch(branchId, filters),
     getStaffByBranch(branchId),
   ]);
@@ -64,6 +63,24 @@ export default async function Page({
     await createWarrantyCase(branchId, serverData);
   }
 
+  // Handle case where branch is not found
+  if (!branch) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Branch Not Found
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              The branch with ID {branchId} could not be found.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="container mx-auto py-6 space-y-6">
@@ -73,7 +90,7 @@ export default async function Page({
               Warranty Cases
             </h1>
             <p className="text-muted-foreground">
-              Branch: <strong>{branch?.name}</strong>
+              Branch: <strong>{branch.name}</strong>
             </p>
           </div>
           <Link href={`/branch/${branchId}/history`}>

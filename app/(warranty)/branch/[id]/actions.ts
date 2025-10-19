@@ -251,13 +251,32 @@ export async function createWarrantyHistory(
 
 export async function getBranch(branchId: number) {
   try {
+    // Ensure Prisma client is connected (especially important in serverless/edge environments)
+    await prisma.$connect();
+
     const branch = await prisma.branch.findUnique({
       where: { id: branchId },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        address: true,
+        officePhone: true,
+        whatsappPhone: true,
+      },
     });
 
     return branch;
   } catch (error) {
     console.error("Error fetching branch details:", error);
+    // Log more details for production debugging
+    console.error("Branch ID:", branchId);
+    console.error("Error type:", error?.constructor?.name);
+
+    // Re-throw with more context
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch branch details: ${error.message}`);
+    }
     throw new Error("Failed to fetch branch details");
   }
 }
