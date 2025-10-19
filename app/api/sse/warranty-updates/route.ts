@@ -69,6 +69,15 @@ export async function GET(request: NextRequest) {
       const data = `data: ${JSON.stringify(initialMessage)}\n\n`;
       controller.enqueue(new TextEncoder().encode(data));
 
+      // Send immediate heartbeat to prevent buffering (critical for Apache/Passenger)
+      // This ensures data flows immediately and prevents proxy buffering
+      const immediateHeartbeat = {
+        type: "heartbeat" as const,
+        data: { timestamp: Date.now() },
+      };
+      const heartbeatData = `data: ${JSON.stringify(immediateHeartbeat)}\n\n`;
+      controller.enqueue(new TextEncoder().encode(heartbeatData));
+
       console.log(
         `[SSE] Connection established: ${userId} (branch: ${branchIdNum})`
       );
@@ -80,13 +89,16 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // Return SSE response
+  // Return SSE response with headers optimized for cPanel/Passenger/Apache
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-store, must-revalidate, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no", // Disable buffering for nginx
+      "X-Content-Type-Options": "nosniff", // Prevent MIME sniffing
+      // Critical for Apache/cPanel to disable buffering
+      "Transfer-Encoding": "chunked",
     },
   });
 }

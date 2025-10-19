@@ -39,8 +39,10 @@ export function useRealtimeUpdates({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxReconnectAttempts = 10;
   const baseReconnectDelay = 1000; // 1 second
+  const connectionTimeout = 15000; // 15 seconds - if no data received, connection is stalled
 
   // Use refs to store callbacks to prevent reconnections when they change
   const onCaseUpdateRef = useRef(onCaseUpdate);
@@ -62,6 +64,12 @@ export function useRealtimeUpdates({
   const handleMessage = useCallback(
     (event: MessageEvent) => {
       try {
+        // Clear connection timeout - we received data, connection is alive
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+
         const message: SSEMessage = JSON.parse(event.data);
 
         switch (message.type) {
@@ -145,16 +153,46 @@ export function useRealtimeUpdates({
       eventSourceRef.current = null;
     }
 
+    // Clear any existing connection timeout
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+
     try {
       const url = `/api/sse/warranty-updates?branchId=${branchId}`;
       const eventSource = new EventSource(url);
 
       eventSource.onmessage = handleMessage;
 
+      eventSource.onopen = () => {
+        console.log("[SSE] Connection opened");
+        // Start connection timeout - if no message received within timeout, reconnect
+        connectionTimeoutRef.current = setTimeout(() => {
+          console.warn(
+            "[SSE] Connection timeout - no data received, reconnecting..."
+          );
+          setIsConnected(false);
+          setConnectionError("Connection stalled");
+          eventSource.close();
+          // Trigger reconnection
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            reconnectAttemptsRef.current++;
+            connect();
+          }
+        }, connectionTimeout);
+      };
+
       eventSource.onerror = (error) => {
         console.error("[SSE] Connection error:", error);
         setIsConnected(false);
         setConnectionError("Connection lost");
+
+        // Clear connection timeout
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
 
         // Attempt to reconnect with exponential backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -176,7 +214,7 @@ export function useRealtimeUpdates({
       console.error("[SSE] Failed to create connection:", error);
       setConnectionError("Failed to establish connection");
     }
-  }, [enabled, branchId, handleMessage]);
+  }, [enabled, branchId, handleMessage, connectionTimeout]);
 
   // Disconnect from SSE endpoint
   const disconnect = useCallback(() => {
@@ -188,6 +226,11 @@ export function useRealtimeUpdates({
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
     }
 
     if (syncIntervalRef.current) {
