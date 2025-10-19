@@ -16,7 +16,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { LogoIcon } from "./icons";
 
 type Branch = {
   id: number;
@@ -80,16 +79,16 @@ export default function SidebarMobile({ branches }: SidebarMobileProps) {
         paddingRight: "max(0px, env(safe-area-inset-right))",
       }}
     >
-      <div className="flex items-center justify-between px-4 py-2">
+      <div className="flex items-center justify-center px-4 py-2">
         {/* Logo/Home button */}
-        <Button
+        {/* <Button
           size="sm"
           variant="ghost"
           onClick={() => router.push("https://app.idealtech.com.my")}
           className="p-2"
         >
           <LogoIcon className="h-5 w-5" />
-        </Button>
+        </Button> */}
 
         {/* Navigation items */}
         <div className="flex items-center gap-1">
@@ -159,7 +158,7 @@ export default function SidebarMobile({ branches }: SidebarMobileProps) {
         </div>
 
         {/* Empty space to balance the layout */}
-        <div className="w-10"></div>
+        {/* <div className="w-10"></div> */}
       </div>
     </div>
   );

@@ -1,10 +1,3 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Sign In - IDT Warranty",
-  description: "Sign in to access your warranty management dashboard",
-};
-
 export default function AuthLayout({
   children,
 }: Readonly<{

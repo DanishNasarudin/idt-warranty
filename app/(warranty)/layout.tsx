@@ -1,10 +1,4 @@
 import Sidebar from "@/components/custom/sidebar-wrapper";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Warranty Management - IDT",
-  description: "Manage warranty cases and settings",
-};
 
 export default function WarrantyLayout({
   children,

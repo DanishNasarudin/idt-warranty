@@ -1,9 +1,12 @@
 "use client";
 import { UserButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 import { LogoIcon } from "./icons";
 import { ModeToggle } from "./theme-toggle";
 
 export default function MobileTopBar() {
+  const router = useRouter();
   return (
     <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 md:hidden">
       <div
@@ -14,7 +17,14 @@ export default function MobileTopBar() {
           paddingRight: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        <LogoIcon className="size-9" />
+        <Button
+          size="sm"
+          variant="nothing"
+          onClick={() => router.push("https://app.idealtech.com.my")}
+          className="p-0!"
+        >
+          <LogoIcon className="size-9" />
+        </Button>
         <div className="flex items-center gap-2">
           <ModeToggle />
           <UserButton
