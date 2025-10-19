@@ -17,8 +17,7 @@ import {
 type SearchParams = {
   search?: string;
   searchField?: string;
-  sortBy?: string;
-  sortDirection?: string;
+  sort?: string;
   page?: string;
   limit?: string;
 };

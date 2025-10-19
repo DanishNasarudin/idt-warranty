@@ -61,13 +61,16 @@ export async function getWarrantyCasesByBranch(
     // Build order by clause
     const orderBy: Prisma.WarrantyCaseOrderByWithRelationInput[] = [];
 
-    if (filters?.sortBy) {
-      orderBy.push({
-        [filters.sortBy]: filters.sortDirection || "desc",
+    if (filters?.sort && filters.sort.length > 0) {
+      // Apply multi-column sorting
+      filters.sort.forEach((sortColumn) => {
+        orderBy.push({
+          [sortColumn.field]: sortColumn.direction,
+        });
       });
     } else {
       // Default sorting
-      orderBy.push({ status: "asc" }, { createdAt: "desc" });
+      orderBy.push({ createdAt: "desc" });
     }
 
     // Calculate pagination

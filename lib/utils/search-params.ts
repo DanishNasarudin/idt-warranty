@@ -1,6 +1,7 @@
 import {
   DateRangePreset,
   SearchField,
+  SortColumn,
   SortDirection,
   SortField,
   WarrantyCaseFilters,
@@ -52,6 +53,50 @@ export function parseStringSafe<T extends string>(
 }
 
 /**
+ * Parses a sort string into an array of SortColumn objects
+ * Format: "field:direction,field:direction" e.g., "createdAt:desc,status:asc"
+ * @param sortString - The sort string from search params
+ * @param allowedFields - Array of allowed sort fields
+ * @param defaultSort - Default sort configuration
+ * @returns Array of valid SortColumn objects
+ */
+export function parseSortColumns(
+  sortString: string | undefined | null,
+  allowedFields: readonly SortField[],
+  defaultSort: SortColumn[] = [
+    { field: "createdAt", direction: "desc" },
+    { field: "serviceNo", direction: "desc" },
+  ]
+): SortColumn[] {
+  if (!sortString) return defaultSort;
+
+  const sortPairs = sortString.split(",").filter(Boolean);
+  const parsedSorts: SortColumn[] = [];
+
+  for (const pair of sortPairs) {
+    const [field, direction] = pair.split(":");
+
+    // Validate field
+    if (!field || !allowedFields.includes(field as SortField)) {
+      continue;
+    }
+
+    // Validate direction
+    if (direction !== "asc" && direction !== "desc") {
+      continue;
+    }
+
+    parsedSorts.push({
+      field: field as SortField,
+      direction: direction as SortDirection,
+    });
+  }
+
+  // Return default if no valid sorts were parsed
+  return parsedSorts.length > 0 ? parsedSorts : defaultSort;
+}
+
+/**
  * Parses warranty case filters from search params with safe defaults
  * @param searchParams - The search params object from Next.js
  * @returns WarrantyCaseFilters with guaranteed valid values
@@ -59,8 +104,7 @@ export function parseStringSafe<T extends string>(
 export function parseWarrantyCaseFilters(searchParams: {
   search?: string;
   searchField?: string;
-  sortBy?: string;
-  sortDirection?: string;
+  sort?: string;
   page?: string;
   limit?: string;
 }): WarrantyCaseFilters {
@@ -80,8 +124,6 @@ export function parseWarrantyCaseFilters(searchParams: {
     "status",
   ];
 
-  const allowedSortDirections: SortDirection[] = ["asc", "desc"];
-
   return {
     search: searchParams.search?.trim() || "",
     searchField: parseStringSafe(
@@ -89,16 +131,7 @@ export function parseWarrantyCaseFilters(searchParams: {
       allowedSearchFields,
       "all"
     ),
-    sortBy: parseStringSafe(
-      searchParams.sortBy,
-      allowedSortFields,
-      "createdAt"
-    ),
-    sortDirection: parseStringSafe(
-      searchParams.sortDirection,
-      allowedSortDirections,
-      "desc"
-    ),
+    sort: parseSortColumns(searchParams.sort, allowedSortFields),
     page: parseIntSafe(searchParams.page, 1, 1),
     limit: parseIntSafe(searchParams.limit, 10, 1),
   };

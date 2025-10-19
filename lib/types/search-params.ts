@@ -14,6 +14,11 @@ export type SortField =
 
 export type SortDirection = "asc" | "desc";
 
+export type SortColumn = {
+  field: SortField;
+  direction: SortDirection;
+};
+
 export type DateRangePreset = "all" | "lastWeek" | "lastMonth" | "custom";
 
 export type DateRangeFilter = {
@@ -25,8 +30,7 @@ export type DateRangeFilter = {
 export type WarrantyCaseFilters = {
   search: string;
   searchField: SearchField;
-  sortBy: SortField;
-  sortDirection: SortDirection;
+  sort: SortColumn[]; // Support multiple sort columns
   page: number;
   limit: number;
 };

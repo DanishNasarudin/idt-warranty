@@ -10,9 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { WarrantyCaseFilters } from "@/lib/types/search-params";
-import { ArrowDownAZ, ArrowUpAZ, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { TableSort } from "./table-sort";
 
 const SEARCH_FIELD_OPTIONS = [
   { label: "All Fields", value: "all" as const },
@@ -20,14 +21,6 @@ const SEARCH_FIELD_OPTIONS = [
   { label: "Customer Name", value: "customerName" as const },
   { label: "Contact", value: "customerContact" as const },
   { label: "Email", value: "customerEmail" as const },
-];
-
-const SORT_FIELD_OPTIONS = [
-  { label: "Date", value: "createdAt" as const },
-  // { label: "Last Updated", value: "updatedAt" as const },
-  { label: "Service No", value: "serviceNo" as const },
-  { label: "Customer Name", value: "customerName" as const },
-  { label: "Status", value: "status" as const },
 ];
 
 type TableToolbarProps = {
@@ -104,22 +97,6 @@ export function TableToolbar({ filters }: TableToolbarProps) {
     );
   };
 
-  const handleSortFieldChange = (value: string) => {
-    updateSearchParams(
-      { sortBy: value as WarrantyCaseFilters["sortBy"] },
-      true
-    );
-  };
-
-  const handleSortDirectionToggle = () => {
-    updateSearchParams(
-      {
-        sortDirection: filters.sortDirection === "asc" ? "desc" : "asc",
-      },
-      true
-    );
-  };
-
   const handleResetFilters = () => {
     setSearchValue("");
     if (debounceTimerRef.current) {
@@ -142,77 +119,38 @@ export function TableToolbar({ filters }: TableToolbarProps) {
   const hasActiveFilters = searchValue.trim() !== "";
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-        {/* Search Input */}
-        <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search warranty cases..."
-            value={searchValue}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-4"
-          />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search warranty cases..."
+              value={searchValue}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-4"
+            />
+          </div>
+
+          {/* Search Field Filter */}
+          <Select
+            value={filters.searchField}
+            onValueChange={handleSearchFieldChange}
+            disabled={isPending}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Search by..." />
+            </SelectTrigger>
+            <SelectContent>
+              {SEARCH_FIELD_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  By: {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-
-        {/* Search Field Filter */}
-        <Select
-          value={filters.searchField}
-          onValueChange={handleSearchFieldChange}
-          disabled={isPending}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Search by..." />
-          </SelectTrigger>
-          <SelectContent>
-            {SEARCH_FIELD_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                By: {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="border-l border h-[20px]"></div>
-
-      <div className="flex items-center gap-2">
-        {/* Sort Field */}
-        <Select
-          value={filters.sortBy}
-          onValueChange={handleSortFieldChange}
-          disabled={isPending}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Sort by..." />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_FIELD_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                Sort: {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Sort Direction Toggle */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleSortDirectionToggle}
-          title={
-            filters.sortDirection === "asc"
-              ? "Sort ascending"
-              : "Sort descending"
-          }
-          disabled={isPending}
-        >
-          {filters.sortDirection === "asc" ? (
-            <ArrowUpAZ className="h-4 w-4" />
-          ) : (
-            <ArrowDownAZ className="h-4 w-4" />
-          )}
-        </Button>
 
         {/* Reset Filters */}
         {hasActiveFilters && (
@@ -227,6 +165,9 @@ export function TableToolbar({ filters }: TableToolbarProps) {
           </Button>
         )}
       </div>
+
+      {/* Multi-column Sort */}
+      <TableSort sortColumns={filters.sort} />
     </div>
   );
 }
