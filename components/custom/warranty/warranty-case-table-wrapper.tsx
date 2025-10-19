@@ -144,7 +144,7 @@ export function WarrantyCaseTableWrapper({
       )}
 
       {/* Toolbar with search, filters, and create button */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <TableToolbar filters={filters} />
         <CreateWarrantyCaseDialog
           branchId={branchId}
