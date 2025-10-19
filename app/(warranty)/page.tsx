@@ -61,10 +61,10 @@ export default function Home() {
 
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {navigationCards.map((card) => {
+        {navigationCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <Link key={card.href} href={card.href}>
+            <Link key={idx} href={card.href}>
               <Card className="h-full transition-all hover:shadow-lg hover:scale-105 cursor-pointer group">
                 <CardHeader>
                   <div className="flex items-start justify-between">

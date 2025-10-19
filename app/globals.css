@@ -124,3 +124,22 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Mobile safe area support */
+@supports (padding: max(0px, env(safe-area-inset-top))) {
+  .mobile-safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  .mobile-safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
