@@ -13,7 +13,7 @@ export const getIdtPcClassName = (value: boolean | null) => {
     return "bg-secondary/50 text-secondary-foreground/70 border-secondary/20";
   }
   if (value === true) {
-    return "bg-primary text-primary-foreground border-primary/20 hover:bg-primary/90";
+    return "bg-primary text-white border-primary/20 hover:bg-primary/90";
   }
   // value === false
   return "bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/20 hover:bg-gray-500/20";
