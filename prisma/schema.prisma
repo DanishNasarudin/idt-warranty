@@ -226,3 +226,27 @@ model CaseTransfer {
   @@index([status], name: "ix_status")
   @@index([transferredAt], name: "ix_transferredAt")
 }
+
+model AppVersion {
+  id Int @id @default(autoincrement())
+
+  // Semantic version string (e.g., "1.2.3")
+  version String @db.VarChar(32)
+
+  // Build timestamp - used as unique identifier for deployments
+  buildTimestamp String @unique @db.VarChar(64)
+
+  // Optional: Git commit hash
+  commitHash String? @db.VarChar(64)
+
+  // Flag to mark the currently active version
+  isActive Boolean @default(false)
+
+  // Deployment timestamp
+  deployedAt DateTime @default(now()) @db.DateTime(3)
+
+  createdAt DateTime @default(now()) @db.DateTime(3)
+
+  @@index([isActive], name: "ix_active")
+  @@index([deployedAt], name: "ix_deployedAt")
+}

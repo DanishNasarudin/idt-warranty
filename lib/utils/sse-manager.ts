@@ -74,6 +74,27 @@ class SSEConnectionManager {
   }
 
   /**
+   * Broadcast a message to all connected users (across all branches)
+   * Used for global events like app version updates
+   */
+  broadcastToAll(message: SSEMessage, excludeUserId?: string): void {
+    this.connections.forEach((conn) => {
+      if (conn.userId !== excludeUserId) {
+        try {
+          const data = `data: ${JSON.stringify(message)}\n\n`;
+          conn.controller.enqueue(new TextEncoder().encode(data));
+        } catch (error) {
+          console.error(
+            `[SSE] Failed to send global message to ${conn.userId}:`,
+            error
+          );
+          this.removeConnection(conn.userId);
+        }
+      }
+    });
+  }
+
+  /**
    * Acquire a field lock
    */
   acquireFieldLock(lock: FieldLock): boolean {

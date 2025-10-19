@@ -3,14 +3,14 @@ applyTo: "**"
 ---
 
 guides:
-make sure we use nextjs conventional method, keeping the page server component, only apply "use client" to interactive components. and apply clean code architecture for cases that may require scaling in the future
+make sure we use nextjs conventional method, keeping the page server component, only apply "use client" to interactive components. and apply clean code architecture & SOLID principle for cases that may require scaling in the future.
 
-use shadcn component where possible.
+Use memoization where applicable to avoid side effects leaking between components or unintentional rerender.
 
-always check the component functionality/css classes before using them.
+use shadcn component where possible. If a custom component is required, add it inside our design system folder to be a reusable component.
 
 you may use zustand as the state manager if required.
 
-refer to the folder structure for current architecture context.
+Always check the entire repo for context of the folder structure, refer to docs as well for the architecture. Before apply a code or creating new component, check the repo for similar patterns and reuse or ensure new component have consistent pattern.
 
-not required to create summary document.
+not required to create document summary.

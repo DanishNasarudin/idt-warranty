@@ -57,6 +57,14 @@ export type SSEMessage =
   | {
       type: "case-transferred-in";
       data: { caseId: number; fromBranchId: number; transferId: number };
+    }
+  | {
+      type: "app-version-updated";
+      data: {
+        version: string;
+        buildTimestamp: string;
+        commitHash?: string;
+      };
     };
 
 export type SSEConnection = {
