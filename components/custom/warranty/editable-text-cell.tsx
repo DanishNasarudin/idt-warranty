@@ -8,8 +8,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Lock } from "lucide-react";
+import { Check, Copy, Lock } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type EditableTextCellProps = {
   value: string | null;
@@ -33,6 +34,8 @@ function EditableTextCellComponent({
   lockedBy,
 }: EditableTextCellProps) {
   const [localValue, setLocalValue] = useState(value || "");
+  const [copied, setCopied] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,6 +74,20 @@ function EditableTextCellComponent({
     }
   };
 
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (value) {
+      try {
+        await navigator.clipboard.writeText(value);
+        setCopied(true);
+        toast.success("Copied to clipboard");
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        toast.error("Failed to copy");
+      }
+    }
+  };
+
   if (isEditing) {
     return (
       <Input
@@ -86,26 +103,52 @@ function EditableTextCellComponent({
   }
 
   const cellContent = (
-    <button
-      onClick={handleClick}
-      disabled={isLocked}
-      className={cn(
-        "h-full w-full rounded-sm transition-colors relative text-left py-1",
-        isLocked
-          ? "cursor-not-allowed bg-muted/50"
-          : "cursor-pointer hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-        className
-      )}
+    <div
+      className="relative h-full w-full group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-center gap-1 h-full">
-        {isLocked && (
-          <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+      <button
+        onClick={handleClick}
+        disabled={isLocked}
+        className={cn(
+          "h-full w-full rounded-sm transition-colors relative text-left py-1",
+          isLocked
+            ? "cursor-not-allowed bg-muted/50"
+            : "cursor-pointer hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+          className
         )}
-        <span className={cn(isLocked && "text-muted-foreground")}>
-          {value || <span className="italic text-muted-foreground">Empty</span>}
-        </span>
-      </div>
-    </button>
+      >
+        <div className="flex items-center gap-1 h-full">
+          {isLocked && (
+            <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+          )}
+          <span className={cn(isLocked && "text-muted-foreground")}>
+            {value || (
+              <span className="italic text-muted-foreground">Empty</span>
+            )}
+          </span>
+        </div>
+      </button>
+
+      {/* Copy Button - Center Right */}
+      {value && isHovered && !isEditing && (
+        <button
+          onClick={handleCopy}
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 right-1 p-1 rounded bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-accent transition-all opacity-0 group-hover:opacity-100",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          )}
+          aria-label="Copy to clipboard"
+        >
+          {copied ? (
+            <Check className="h-3 w-3 text-green-600" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
+        </button>
+      )}
+    </div>
   );
 
   if (isLocked && lockedBy) {

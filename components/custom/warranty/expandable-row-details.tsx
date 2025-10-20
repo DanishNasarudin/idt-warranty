@@ -29,6 +29,8 @@ import { BranchOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import { cn } from "@/lib/utils";
 import {
   ArrowRightLeft,
+  Check,
+  Copy,
   History,
   Lock,
   MessageCircle,
@@ -79,6 +81,8 @@ export function ExpandableRowDetails({
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [availableBranches, setAvailableBranches] = useState<BranchOption[]>(
@@ -203,6 +207,19 @@ export function ExpandableRowDetails({
       console.error("Error deleting warranty case:", error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleCopy = async (field: string, value: string) => {
+    if (value) {
+      try {
+        await navigator.clipboard.writeText(value);
+        setCopiedField(field);
+        toast.success("Copied to clipboard");
+        setTimeout(() => setCopiedField(null), 2000);
+      } catch (err) {
+        toast.error("Failed to copy");
+      }
     }
   };
 
@@ -393,31 +410,64 @@ export function ExpandableRowDetails({
                     )}
                     {field.label}
                   </Label>
-                  {field.multiline ? (
-                    <textarea
-                      id={`${case_.id}-${field.name}`}
-                      value={fieldValue}
-                      onChange={(e) => handleChange(field.name, e.target.value)}
-                      onFocus={() => handleFocus(field.name)}
-                      onBlur={() => handleBlur(field.name)}
-                      disabled={lockStatus.isLocked}
-                      className={cn(
-                        "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                        lockStatus.isLocked && "bg-muted/50"
+                  <div
+                    className="relative group"
+                    onMouseEnter={() => setHoveredField(field.name)}
+                    onMouseLeave={() => setHoveredField(null)}
+                  >
+                    {field.multiline ? (
+                      <textarea
+                        id={`${case_.id}-${field.name}`}
+                        value={fieldValue}
+                        onChange={(e) =>
+                          handleChange(field.name, e.target.value)
+                        }
+                        onFocus={() => handleFocus(field.name)}
+                        onBlur={() => handleBlur(field.name)}
+                        disabled={lockStatus.isLocked}
+                        className={cn(
+                          "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                          lockStatus.isLocked && "bg-muted/50"
+                        )}
+                      />
+                    ) : (
+                      <Input
+                        id={`${case_.id}-${field.name}`}
+                        type={field.type}
+                        value={fieldValue}
+                        onChange={(e) =>
+                          handleChange(field.name, e.target.value)
+                        }
+                        onFocus={() => handleFocus(field.name)}
+                        onBlur={() => handleBlur(field.name)}
+                        disabled={lockStatus.isLocked}
+                        className={cn(lockStatus.isLocked && "bg-muted/50")}
+                      />
+                    )}
+
+                    {/* Copy Button - Center Right for Input, Top Right for Textarea */}
+                    {fieldValue &&
+                      hoveredField === field.name &&
+                      focusedField !== field.name && (
+                        <button
+                          onClick={() => handleCopy(field.name, fieldValue)}
+                          className={cn(
+                            "absolute right-2 p-1.5 rounded bg-background/80 backdrop-blur-sm border shadow-sm hover:bg-accent transition-all opacity-0 group-hover:opacity-100",
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            field.multiline
+                              ? "top-2"
+                              : "top-1/2 -translate-y-1/2"
+                          )}
+                          aria-label="Copy to clipboard"
+                        >
+                          {copiedField === field.name ? (
+                            <Check className="h-3.5 w-3.5 text-green-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                       )}
-                    />
-                  ) : (
-                    <Input
-                      id={`${case_.id}-${field.name}`}
-                      type={field.type}
-                      value={fieldValue}
-                      onChange={(e) => handleChange(field.name, e.target.value)}
-                      onFocus={() => handleFocus(field.name)}
-                      onBlur={() => handleBlur(field.name)}
-                      disabled={lockStatus.isLocked}
-                      className={cn(lockStatus.isLocked && "bg-muted/50")}
-                    />
-                  )}
+                  </div>
                 </div>
               );
             })}
