@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
       fullUrl: true, // Log full URL in development
     },
   },
+  // Set build timestamp at build time if not already set
+  env: {
+    NEXT_PUBLIC_BUILD_TIMESTAMP:
+      process.env.NEXT_PUBLIC_BUILD_TIMESTAMP || new Date().toISOString(),
+  },
 };
 
 export default nextConfig;

@@ -74,6 +74,34 @@ export function useVersionCheck({
   }, [onVersionUpdate]);
 
   /**
+   * Load last known version from localStorage
+   */
+  const getStoredVersion = useCallback((): VersionInfo | null => {
+    if (typeof window === "undefined") return null;
+
+    try {
+      const stored = localStorage.getItem("app-version");
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error("[Version Check] Error reading localStorage:", error);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Save version to localStorage
+   */
+  const saveStoredVersion = useCallback((version: VersionInfo) => {
+    if (typeof window === "undefined") return;
+
+    try {
+      localStorage.setItem("app-version", JSON.stringify(version));
+    } catch (error) {
+      console.error("[Version Check] Error writing to localStorage:", error);
+    }
+  }, []);
+
+  /**
    * Fetch current version from API
    */
   const checkVersion = useCallback(async () => {
@@ -93,14 +121,36 @@ export function useVersionCheck({
 
       const newVersion: VersionInfo = await response.json();
 
-      // If this is the first check, just store the version
+      // If this is the first check, check against stored version first
       if (!currentVersion) {
-        setCurrentVersion(newVersion);
-        console.log("[Version Check] Initial version:", newVersion);
+        const storedVersion = getStoredVersion();
+
+        // If we have a stored version and it's different from server version
+        if (
+          storedVersion &&
+          isVersionDifferent(
+            storedVersion.buildTimestamp,
+            newVersion.buildTimestamp
+          )
+        ) {
+          console.log(
+            "[Version Check] New version detected on initial load:",
+            newVersion
+          );
+          setHasUpdate(true);
+          setCurrentVersion(newVersion);
+          saveStoredVersion(newVersion);
+          onVersionUpdateRef.current?.(newVersion);
+        } else {
+          // First load or same version - just store it
+          setCurrentVersion(newVersion);
+          saveStoredVersion(newVersion);
+          console.log("[Version Check] Initial version:", newVersion);
+        }
         return;
       }
 
-      // Check if version has changed
+      // Check if version has changed from current version
       if (
         isVersionDifferent(
           currentVersion.buildTimestamp,
@@ -110,6 +160,7 @@ export function useVersionCheck({
         console.log("[Version Check] New version detected:", newVersion);
         setHasUpdate(true);
         setCurrentVersion(newVersion);
+        saveStoredVersion(newVersion);
         onVersionUpdateRef.current?.(newVersion);
       }
     } catch (error) {
@@ -117,7 +168,13 @@ export function useVersionCheck({
     } finally {
       setIsChecking(false);
     }
-  }, [enabled, currentVersion, isChecking]);
+  }, [
+    enabled,
+    currentVersion,
+    isChecking,
+    getStoredVersion,
+    saveStoredVersion,
+  ]);
 
   /**
    * Handle SSE messages for version updates
@@ -140,6 +197,7 @@ export function useVersionCheck({
           ) {
             setHasUpdate(true);
             setCurrentVersion(newVersion);
+            saveStoredVersion(newVersion);
             onVersionUpdateRef.current?.(newVersion);
           }
         }
@@ -147,7 +205,7 @@ export function useVersionCheck({
         console.error("[Version Check] Error handling SSE message:", error);
       }
     },
-    [currentVersion]
+    [currentVersion, saveStoredVersion]
   );
 
   /**

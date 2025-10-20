@@ -6,9 +6,15 @@
  * 1. package.json version (semantic versioning)
  * 2. Build timestamp (unique identifier per deployment)
  * 3. Optional: Git commit hash from environment variable
+ *
+ * The build timestamp is automatically generated at build time via next.config.ts
+ * and remains constant for the entire deployment lifecycle.
  */
 
 import packageJson from "@/package.json";
+
+// Cache the build timestamp to ensure consistency
+let cachedBuildTimestamp: string | null = null;
 
 /**
  * Get the current app version from package.json
@@ -22,13 +28,19 @@ export function getAppVersion(): string {
  * This is generated at build time and should be consistent across the deployment
  */
 export function getBuildTimestamp(): string {
-  // Use environment variable if available (set during build)
-  // Otherwise, use a compile-time constant
-  return (
+  // Return cached value if available (ensures consistency)
+  if (cachedBuildTimestamp) {
+    return cachedBuildTimestamp;
+  }
+
+  // Use environment variable set at build time
+  // NEXT_PUBLIC_BUILD_TIMESTAMP is set in next.config.ts during build
+  cachedBuildTimestamp =
     process.env.NEXT_PUBLIC_BUILD_TIMESTAMP ||
     process.env.BUILD_TIMESTAMP ||
-    new Date().toISOString()
-  );
+    new Date().toISOString();
+
+  return cachedBuildTimestamp;
 }
 
 /**

@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:prod": "./scripts/build-with-version.sh",
     "start": "next start",
     "server-build": "prisma migrate deploy && prisma generate && next build",
     "postinstall": "prisma generate",
