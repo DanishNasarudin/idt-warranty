@@ -213,14 +213,14 @@ export function ExpandableRowDetails({
     { name: "address", label: "Address", type: "text", multiline: true },
     {
       name: "statusDesc",
-      label: "Status Description",
+      label: "Status Description (Waiting For)",
       type: "text",
       multiline: true,
     },
     { name: "remarks", label: "Remarks", type: "text", multiline: true },
     { name: "receivedItems", label: "Received Items", type: "text" },
     { name: "pin", label: "PIN", type: "text" },
-    { name: "cost", label: "Cost", type: "number" },
+    { name: "cost", label: "Cost (RM)", type: "number" },
     { name: "issues", label: "Issues", type: "text", multiline: true },
     { name: "solutions", label: "Solutions", type: "text", multiline: true },
   ];

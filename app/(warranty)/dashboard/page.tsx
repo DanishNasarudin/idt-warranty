@@ -135,7 +135,7 @@ export default async function Page({ searchParams }: PageProps) {
       />
 
       {/* Branch Status & Transfer Stats */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <BranchStatusCard branchStatusCounts={stats.branchStatusCounts} />
         <BranchTransferCard transferStats={stats.transferStats} />
       </div>

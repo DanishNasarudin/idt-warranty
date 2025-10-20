@@ -20,6 +20,9 @@ import {
   updateStaff as updateStaffAction,
 } from "./actions";
 
+// Force dynamic rendering to ensure fresh data on every request
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   // Fetch initial data on the server
   const [branches, staff, branchesForSelect, caseScopes] = await Promise.all([

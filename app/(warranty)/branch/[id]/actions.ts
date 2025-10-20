@@ -225,6 +225,8 @@ export async function updateWarrantyCase(
 
     // Revalidate the page to reflect changes
     revalidatePath(`/branch/${branchId}`);
+    // Also revalidate settings page since it shows case counts per branch
+    revalidatePath("/settings");
   } catch (error) {
     console.error("Error updating warranty case:", error);
     throw new Error("Failed to update warranty case");
@@ -424,6 +426,8 @@ export async function createWarrantyCase(
 
     // Revalidate the page to reflect changes
     revalidatePath(`/branch/${branchId}`);
+    // Also revalidate settings page since it shows case counts per branch
+    revalidatePath("/settings");
 
     // Convert Decimal to number for serialization
     return {
@@ -461,6 +465,8 @@ export async function deleteWarrantyCase(
 
     // Revalidate the page to reflect changes
     revalidatePath(`/branch/${branchId}`);
+    // Also revalidate settings page since it shows case counts per branch
+    revalidatePath("/settings");
 
     // TODO: Emit socket.io event here for real-time updates
     // Example: socketServer.to(`branch-${branchId}`).emit('caseDeleted', { caseId });

@@ -140,6 +140,8 @@ export async function transferCaseToBranch(
     // Revalidate both branch pages
     revalidatePath(`/branch/${fromBranchId}`);
     revalidatePath(`/branch/${toBranchId}`);
+    // Also revalidate settings page since it shows case counts per branch
+    revalidatePath("/settings");
 
     return {
       success: true,
