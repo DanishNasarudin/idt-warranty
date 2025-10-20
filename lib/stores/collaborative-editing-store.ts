@@ -432,7 +432,7 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
     // Helper: Flush all pending updates immediately
     flushAllPendingUpdates: async () => {
       const { pendingUpdates } = get();
-      
+
       if (pendingUpdates.size === 0) {
         return;
       }
@@ -448,10 +448,10 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
       await Promise.all(
         updatesToFlush.map(async (update) => {
           const key = `${update.caseId}:${update.field}`;
-          
+
           // Clear the timeout
           clearTimeout(update.timeoutId);
-          
+
           // Mark as saving
           set((state) => {
             const newPending = new Map(state.pendingUpdates);
@@ -475,17 +475,17 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
       updatesToFlush.forEach((update) => {
         const key = `${update.caseId}:${update.field}`;
         const current = get().pendingUpdates.get(key);
-        
+
         if (current && !current.isSaving) {
           // Clear the existing timeout
           clearTimeout(current.timeoutId);
-          
+
           // Create a new timeout with 0ms delay to trigger immediately
           const immediateTimeoutId = setTimeout(() => {
             // The timeout callback will be the same as before
             // This will be handled by the scheduleUpdate logic
           }, 0);
-          
+
           set((state) => {
             const newPending = new Map(state.pendingUpdates);
             newPending.set(key, {

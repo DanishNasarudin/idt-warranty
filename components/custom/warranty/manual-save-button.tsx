@@ -131,9 +131,7 @@ export const ManualSaveButton = memo(function ManualSaveButton({
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                <span>
-                  Save{pendingCount > 1 ? ` (${pendingCount})` : ""}
-                </span>
+                <span>Save{pendingCount > 1 ? ` (${pendingCount})` : ""}</span>
               </>
             )}
           </Button>
