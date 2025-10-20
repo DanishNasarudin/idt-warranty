@@ -1,6 +1,10 @@
-# Email Configuration Guide
+# Email Feature - Configuration & Implementation
 
-This guide explains how to configure email functionality for sending warranty case details to customers.
+This guide explains how to configure and use the email functionality for sending warranty case details to customers.
+
+## Overview
+
+The email feature allows sending warranty case details with PDF attachment to customer email addresses. The system uses nodemailer with custom SMTP configuration.
 
 ## Environment Variables
 
@@ -152,6 +156,53 @@ To test the email configuration:
 - Check your SMTP provider's sending limits
 - Review server logs for error messages
 
+## Implementation Details
+
+### Server Action
+
+**File:** `app/(warranty)/branch/[id]/actions.ts`
+
+The `sendWarrantyCaseEmail()` function:
+
+- Validates customer email exists
+- Configures nodemailer with SMTP settings from environment variables
+- Generates PDF buffer from warranty case data
+- Sends formatted HTML email with PDF attachment
+- Includes comprehensive error handling
+
+### Email Button Component
+
+**File:** `components/custom/warranty/send-email-button.tsx`
+
+Features:
+
+- Reuses PDF generation logic from `PrintPDFButton`
+- Converts PDF blob to buffer for email attachment
+- Shows loading state while sending
+- Displays success/error toast notifications
+- **Only renders if customer email is available**
+
+### Integration
+
+The email button is integrated into the warranty case actions bar:
+
+- Located between Print PDF and Delete buttons
+- Automatically hides when customer email is empty
+- Part of the expanded row details view
+
+### Email Content
+
+The email includes:
+
+- Professional HTML formatting
+- Service number
+- Customer name
+- Current status
+- Received items (if available)
+- Issues reported (if available)
+- Solutions provided (if available)
+- PDF attachment with full warranty case details
+
 ## Security Notes
 
 1. Never commit `.env.local` to version control
@@ -181,3 +232,19 @@ For production environments:
 3. Implement rate limiting to prevent abuse
 4. Add email delivery monitoring and alerts
 5. Set up proper SPF, DKIM, and DMARC records for your domain
+
+## Optional Enhancements
+
+Future improvements to consider:
+
+- [ ] Email templates with company branding
+- [ ] Email preview before sending
+- [ ] CC/BCC functionality
+- [ ] Email delivery status tracking
+- [ ] Email history log in database
+- [ ] Email queue for bulk sending
+- [ ] Email scheduling functionality
+
+---
+
+**Status:** ✅ Implemented and Production Ready

@@ -2,7 +2,43 @@
 
 A production-ready system for detecting and notifying users about new application versions, ensuring users are always running the latest code.
 
-## 🌟 Features
+## Quick Reference
+
+### For Deployment
+
+```bash
+# Automatic (recommended)
+npm run build  # postbuild script updates version automatically
+
+# Manual
+npm run update-version
+```
+
+### For Testing
+
+```bash
+# 1. Build and start
+npm run build
+npm run start
+
+# 2. In package.json, change version "0.1.0" → "0.2.0"
+
+# 3. Update version
+npm run update-version
+
+# 4. Wait 5 minutes or check browser console
+# Modal should appear
+```
+
+### Environment Variables (Optional)
+
+```env
+# Set in CI/CD for consistent versioning
+NEXT_PUBLIC_BUILD_TIMESTAMP="2025-10-19T07:22:26.000Z"
+NEXT_PUBLIC_COMMIT_HASH="abc123"
+```
+
+## Features
 
 - **Automatic Version Detection**: Detects new deployments automatically
 - **Smart Polling**: Only checks when user is active on the page (respects page visibility)
@@ -12,7 +48,7 @@ A production-ready system for detecting and notifying users about new applicatio
 - **Build-Time Versioning**: Uses build timestamp as unique version identifier
 - **Database Persistence**: Stores version info in database for reliability
 
-## 🎯 Why This Approach?
+## Why This Approach?
 
 | Feature               | Description                     | Benefit                          |
 | --------------------- | ------------------------------- | -------------------------------- |
@@ -22,7 +58,7 @@ A production-ready system for detecting and notifying users about new applicatio
 | **Session Tracking**  | Tracks how long user is on page | Optimizes check frequency        |
 | **Dismissible Modal** | User can dismiss with reminder  | Non-intrusive UX                 |
 
-## 📊 Performance
+## Performance
 
 ### Resource Usage
 
@@ -38,7 +74,7 @@ A production-ready system for detecting and notifying users about new applicatio
 - Re-prompts after 10 minutes if user doesn't reload
 - Leverages existing SSE connection when available
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────┐     Poll/SSE      ┌─────────────┐
@@ -60,7 +96,7 @@ A production-ready system for detecting and notifying users about new applicatio
                                    └─────────────┘
 ```
 
-## 📁 Implementation Files
+## Implementation Files
 
 ### Core Files
 
@@ -90,7 +126,7 @@ prisma/
 └── schema.prisma                   # AppVersion model
 ```
 
-## 🚀 How It Works
+## How It Works
 
 ### 1. Build Time Version Generation
 
@@ -138,7 +174,7 @@ When new version detected:
 - If dismissed, reminds again after 10 minutes
 - Hard reload ensures all resources are fresh
 
-## 📖 Usage
+## Usage
 
 ### Basic Setup (Already Configured)
 
@@ -185,17 +221,7 @@ This will:
 2. Deactivate previous versions
 3. Make new version available to clients
 
-## 🔧 Configuration
-
-### Environment Variables
-
-```env
-# Optional: Set during build for consistent timestamp
-NEXT_PUBLIC_BUILD_TIMESTAMP="2025-10-19T07:22:26.000Z"
-
-# Optional: Git commit hash
-NEXT_PUBLIC_COMMIT_HASH="abc123def456"
-```
+## Configuration
 
 ### Polling Interval
 
@@ -222,7 +248,7 @@ setTimeout(() => {
 }, 300000); // 5 minutes
 ```
 
-## 🎨 Customization
+## Customization
 
 ### Modal Appearance
 
@@ -244,7 +270,7 @@ const shouldCheck = () => {
 };
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Test Version Update
 
@@ -275,7 +301,7 @@ In browser console:
 window.dispatchEvent(new CustomEvent("app-version-updated"));
 ```
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Modal Doesn't Appear
 
@@ -299,7 +325,49 @@ Adjust `pollInterval` in provider:
 pollInterval: 300000, // milliseconds
 ```
 
-## 📝 Best Practices
+## CI/CD Integration
+
+### Example GitHub Actions
+
+```yaml
+- name: Set Build Timestamp
+  run: echo "NEXT_PUBLIC_BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")" >> $GITHUB_ENV
+
+- name: Set Commit Hash
+  run: echo "NEXT_PUBLIC_COMMIT_HASH=${{ github.sha }}" >> $GITHUB_ENV
+
+- name: Build Application
+  run: npm run build
+
+- name: Update Version in Database
+  run: npm run update-version
+  env:
+    DATABASE_URL: ${{ secrets.DATABASE_URL }}
+```
+
+## Database Schema
+
+```sql
+AppVersion
+├─ id: INT (auto-increment)
+├─ version: VARCHAR(32)          # e.g., "0.1.0"
+├─ buildTimestamp: VARCHAR(64)   # Unique identifier
+├─ commitHash: VARCHAR(64)       # Optional Git hash
+├─ isActive: BOOLEAN             # Current active version
+├─ deployedAt: DATETIME
+└─ createdAt: DATETIME
+```
+
+## Performance Metrics
+
+| Metric                | Value      | Notes              |
+| --------------------- | ---------- | ------------------ |
+| **Poll Interval**     | 5 minutes  | Configurable       |
+| **Network per Check** | ~200 bytes | Minimal overhead   |
+| **Memory**            | ~5 KB      | Negligible impact  |
+| **CPU**               | < 1%       | Only during checks |
+
+## Best Practices
 
 1. **Always run update-version after deployment**
 
@@ -322,7 +390,7 @@ pollInterval: 300000, // milliseconds
    - Ensure reload works correctly
    - Check dismissal behavior
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
 Potential improvements:
 
@@ -334,22 +402,7 @@ Potential improvements:
 - [ ] **Broadcast SSE Event**: Real-time push on deployment
 - [ ] **Service Worker**: Background sync and offline support
 
-## 📚 Related Documentation
-
-- [REALTIME.md](./REALTIME.md) - SSE infrastructure
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Overall app architecture
-- [DATABASE_SETUP.md](./DATABASE_SETUP.md) - Database configuration
-
-## 🤝 Contributing
-
-When modifying this feature:
-
-1. Update this documentation
-2. Test with different polling intervals
-3. Verify modal UX is user-friendly
-4. Check performance impact
-5. Update tests if needed
-
 ---
 
-**Version Check System v1.0** - Built with ❤️ for seamless updates
+**Status:** ✅ Implemented and Production Ready
+**Version:** 1.0

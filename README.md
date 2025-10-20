@@ -55,20 +55,23 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-Visit [http://localhost:3000/branch/1](http://localhost:3000/branch/1)
+Visit [http://localhost:3000](http://localhost:3000)
 
-**For detailed setup instructions, see [QUICK_START.md](./QUICK_START.md)**
+**📖 For detailed setup instructions, see the [Documentation Index](./docs/README.md)**
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](./docs/QUICK_START.md)** - Get up and running quickly
+**[📖 Documentation Index](./docs/README.md)** - Start here for complete documentation navigation
+
+### Quick Links
+
+- **[Quick Start Guide](./docs/QUICK_START.md)** - Get up and running in 5 minutes
 - **[Architecture](./docs/ARCHITECTURE.md)** - System architecture and design patterns
 - **[Real-Time Collaboration](./docs/REALTIME.md)** - SSE implementation and testing guide
-- **[Implementation Summary](./docs/IMPLEMENTATION_SUMMARY.md)** - Complete feature list
-- **[Database Setup](./docs/DATABASE_SETUP.md)** - Database configuration and seeding
-- **[Email Configuration](./docs/EMAIL_CONFIGURATION.md)** - SMTP setup for email features
-- **[Settings Documentation](./docs/SETTINGS_DOCUMENTATION.md)** - Settings management guide
-- **[Next.js 15 Conventions](./docs/NEXT15_CONVENTIONS.md)** - Next.js patterns and best practices
+
+### More Documentation
+
+For complete documentation including features, configuration, deployment, and troubleshooting, see the [Documentation Index](./docs/README.md).
 
 ## 🛠 Tech Stack
 
