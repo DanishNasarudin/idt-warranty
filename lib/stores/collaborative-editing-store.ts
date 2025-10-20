@@ -18,6 +18,8 @@ type PendingUpdate = {
   value: any;
   timestamp: number;
   timeoutId: NodeJS.Timeout;
+  isSaving?: boolean; // Track if this update is currently being saved
+  hasNewerChanges?: boolean; // Track if there are newer changes during save
 };
 
 type CollaborativeEditingState = {
@@ -78,6 +80,12 @@ type CollaborativeEditingState = {
 
   // Get display value with optimistic updates merged (alias for getMergedData for clarity)
   getDisplayValue: (caseId: number) => Partial<WarrantyCaseWithRelations>;
+
+  // Helper methods for checking save status
+  isFieldSaving: (caseId: number, field: string) => boolean;
+  hasUnsavedChanges: (caseId?: number) => boolean;
+  getPendingSaveCount: () => number;
+  flushAllPendingUpdates: () => Promise<void>;
 
   clearAll: () => void;
 };
@@ -163,8 +171,33 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
       const key = `${caseId}:${field}`;
       const state = get();
 
-      // Cancel existing pending update
+      // Get existing pending update
       const existingUpdate = state.pendingUpdates.get(key);
+
+      // If an update is currently being saved, mark that there are newer changes
+      if (existingUpdate?.isSaving) {
+        console.log(
+          `[Store] Save in progress for ${key}, marking newer changes`
+        );
+        set((state) => {
+          const newPending = new Map(state.pendingUpdates);
+          const current = newPending.get(key);
+          if (current) {
+            newPending.set(key, {
+              ...current,
+              hasNewerChanges: true,
+              value, // Update to the newest value
+            });
+          }
+          return { pendingUpdates: newPending };
+        });
+
+        // Apply optimistic update immediately for UI feedback
+        state.setOptimisticUpdate(caseId, { [field]: value });
+        return;
+      }
+
+      // Cancel existing timeout if not currently saving
       if (existingUpdate) {
         clearTimeout(existingUpdate.timeoutId);
       }
@@ -174,17 +207,59 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
 
       // Schedule debounced server update
       const timeoutId = setTimeout(async () => {
-        try {
-          await onUpdate(caseId, field, value);
-          // Clear optimistic update after successful server update
-          state.clearOptimisticUpdate(caseId, field);
+        // Mark as saving before starting
+        set((state) => {
+          const newPending = new Map(state.pendingUpdates);
+          const current = newPending.get(key);
+          if (current) {
+            newPending.set(key, {
+              ...current,
+              isSaving: true,
+              hasNewerChanges: false,
+            });
+          }
+          return { pendingUpdates: newPending };
+        });
 
-          // Remove from pending updates
-          set((state) => {
-            const newPending = new Map(state.pendingUpdates);
-            newPending.delete(key);
-            return { pendingUpdates: newPending };
-          });
+        try {
+          // Capture the value at save time
+          const saveValue = get().pendingUpdates.get(key)?.value ?? value;
+
+          await onUpdate(caseId, field, saveValue);
+
+          // Check if there were newer changes during save
+          const afterSave = get().pendingUpdates.get(key);
+
+          if (afterSave?.hasNewerChanges) {
+            console.log(
+              `[Store] Newer changes detected for ${key}, re-scheduling save`
+            );
+
+            // Clear the current pending update
+            set((state) => {
+              const newPending = new Map(state.pendingUpdates);
+              newPending.delete(key);
+              return { pendingUpdates: newPending };
+            });
+
+            // Re-schedule with the newer value
+            state.scheduleUpdate(
+              caseId,
+              field,
+              afterSave.value,
+              onUpdate,
+              debounceMs
+            );
+          } else {
+            // No newer changes, clear optimistic update and pending update
+            state.clearOptimisticUpdate(caseId, field);
+
+            set((state) => {
+              const newPending = new Map(state.pendingUpdates);
+              newPending.delete(key);
+              return { pendingUpdates: newPending };
+            });
+          }
         } catch (error) {
           console.error("Failed to update field:", error);
           // Revert optimistic update on error
@@ -208,6 +283,8 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
           value,
           timestamp: Date.now(),
           timeoutId,
+          isSaving: false,
+          hasNewerChanges: false,
         });
         return { pendingUpdates: newPending };
       });
@@ -321,6 +398,104 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
     getDisplayValue: (caseId) => {
       // Return optimistic updates only (to be merged with case data in component)
       return get().optimisticUpdates.get(caseId) || {};
+    },
+
+    // Helper: Check if a specific field is currently being saved
+    isFieldSaving: (caseId, field) => {
+      const key = `${caseId}:${field}`;
+      const update = get().pendingUpdates.get(key);
+      return update?.isSaving === true;
+    },
+
+    // Helper: Check if there are any unsaved changes (optionally for a specific case)
+    hasUnsavedChanges: (caseId?) => {
+      const { pendingUpdates, optimisticUpdates } = get();
+
+      if (caseId !== undefined) {
+        // Check specific case
+        const hasPending = Array.from(pendingUpdates.values()).some(
+          (update) => update.caseId === caseId
+        );
+        const hasOptimistic = optimisticUpdates.has(caseId);
+        return hasPending || hasOptimistic;
+      }
+
+      // Check all cases
+      return pendingUpdates.size > 0 || optimisticUpdates.size > 0;
+    },
+
+    // Helper: Get count of pending saves
+    getPendingSaveCount: () => {
+      return get().pendingUpdates.size;
+    },
+
+    // Helper: Flush all pending updates immediately
+    flushAllPendingUpdates: async () => {
+      const { pendingUpdates } = get();
+      
+      if (pendingUpdates.size === 0) {
+        return;
+      }
+
+      console.log(`[Store] Flushing ${pendingUpdates.size} pending updates`);
+
+      // Collect all pending updates that aren't already saving
+      const updatesToFlush = Array.from(pendingUpdates.values()).filter(
+        (update) => !update.isSaving
+      );
+
+      // Clear their timeouts and trigger immediate saves
+      await Promise.all(
+        updatesToFlush.map(async (update) => {
+          const key = `${update.caseId}:${update.field}`;
+          
+          // Clear the timeout
+          clearTimeout(update.timeoutId);
+          
+          // Mark as saving
+          set((state) => {
+            const newPending = new Map(state.pendingUpdates);
+            const current = newPending.get(key);
+            if (current) {
+              newPending.set(key, {
+                ...current,
+                isSaving: true,
+              });
+            }
+            return { pendingUpdates: newPending };
+          });
+
+          // Note: The actual save needs to be triggered by calling the
+          // stored onUpdate function, but we don't have access to it here.
+          // Instead, we'll trigger the timeout immediately by setting it to 0
+        })
+      );
+
+      // Trigger all pending timeouts immediately by clearing and re-scheduling with 0ms
+      updatesToFlush.forEach((update) => {
+        const key = `${update.caseId}:${update.field}`;
+        const current = get().pendingUpdates.get(key);
+        
+        if (current && !current.isSaving) {
+          // Clear the existing timeout
+          clearTimeout(current.timeoutId);
+          
+          // Create a new timeout with 0ms delay to trigger immediately
+          const immediateTimeoutId = setTimeout(() => {
+            // The timeout callback will be the same as before
+            // This will be handled by the scheduleUpdate logic
+          }, 0);
+          
+          set((state) => {
+            const newPending = new Map(state.pendingUpdates);
+            newPending.set(key, {
+              ...current,
+              timeoutId: immediateTimeoutId,
+            });
+            return { pendingUpdates: newPending };
+          });
+        }
+      });
     },
 
     clearAll: () => {

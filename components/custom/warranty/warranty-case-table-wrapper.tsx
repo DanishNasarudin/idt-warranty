@@ -7,15 +7,14 @@ import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
-import { Check, CloudUpload, RefreshCw } from "lucide-react";
-import { useMemo } from "react";
 import { toast } from "sonner";
 import {
   CreateWarrantyCaseDialog,
   CreateWarrantyCaseFormData,
 } from "./create-warranty-case-dialog";
+import { ManualSaveButton } from "./manual-save-button";
+import { SaveStatusIndicator } from "./save-status-indicator";
 import { TablePagination } from "./table-pagination";
 import { TableToolbar } from "./table-toolbar";
 import { WarrantyCaseTable } from "./warranty-case-table";
@@ -43,8 +42,6 @@ export function WarrantyCaseTableWrapper({
 
   // Use the custom hook for all sync and collaborative editing logic
   const {
-    savingStatus,
-    fadeOut,
     isConnected,
     handleUpdateWithDebounce,
     handleAcquireFieldLock,
@@ -79,35 +76,6 @@ export function WarrantyCaseTableWrapper({
     }
   };
 
-  // Memoize status display to prevent recalculation on every render
-  const statusDisplay = useMemo(() => {
-    switch (savingStatus) {
-      case "saving":
-        return {
-          icon: RefreshCw,
-          text: "Saving data...",
-          className: "text-blue-600 dark:text-blue-400",
-          iconClassName: "animate-spin",
-        };
-      case "saved":
-        return {
-          icon: Check,
-          text: "Data saved!",
-          className: "text-green-600 dark:text-green-400",
-          iconClassName: "",
-        };
-      case "synced":
-        return {
-          icon: CloudUpload,
-          text: "Data is latest!",
-          className: "text-green-600 dark:text-green-400",
-          iconClassName: "",
-        };
-      default:
-        return null;
-    }
-  }, [savingStatus]);
-
   return (
     <div className="space-y-4">
       {/* Connection and Saving status indicators */}
@@ -125,21 +93,11 @@ export function WarrantyCaseTableWrapper({
             </span>
           </div>
 
-          {/* Saving status */}
-          {statusDisplay && (
-            <div
-              className={cn(
-                "flex items-center gap-1.5 font-medium transition-opacity duration-500",
-                statusDisplay.className,
-                fadeOut && "opacity-0"
-              )}
-            >
-              <statusDisplay.icon
-                className={cn("h-3.5 w-3.5", statusDisplay.iconClassName)}
-              />
-              <span>{statusDisplay.text}</span>
-            </div>
-          )}
+          {/* Saving status - using improved SaveStatusIndicator */}
+          <SaveStatusIndicator />
+
+          {/* Manual Save Button - for user assurance */}
+          <ManualSaveButton />
         </div>
       )}
 

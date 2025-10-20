@@ -48,6 +48,7 @@ import { TransferHistoryDialog } from "./transfer-history-dialog";
 type ExpandableRowDetailsProps = {
   case_: WarrantyCaseWithRelations;
   onUpdate: (updates: Partial<WarrantyCaseWithRelations>) => void;
+  onUpdateField?: (caseId: number, field: string, value: any) => Promise<void>;
   onAcquireFieldLock?: (caseId: number, field: string) => Promise<boolean>;
   onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
   userId?: string;
@@ -58,6 +59,7 @@ type ExpandableRowDetailsProps = {
 export function ExpandableRowDetails({
   case_,
   onUpdate,
+  onUpdateField,
   onAcquireFieldLock,
   onReleaseFieldLock,
   userId = "",
@@ -90,7 +92,7 @@ export function ExpandableRowDetails({
   );
   const [imageRefreshTrigger, setImageRefreshTrigger] = useState(0);
   const deleteCase = useWarrantyCaseStore((state) => state.deleteCase);
-  const { isFieldLocked, fieldLocks } = useCollaborativeEditingStore();
+  const { isFieldLocked } = useCollaborativeEditingStore();
 
   // Load available branches for transfer when row is expanded
   // This prevents unnecessary server action calls when row is collapsed
@@ -109,13 +111,29 @@ export function ExpandableRowDetails({
   }, [isExpanded, case_.branchId]); // Trigger when row expands
 
   // Sync local data with case_ prop changes (from real-time updates)
-  // but only update fields that are not currently being edited (not focused)
+  // Update all fields from SSE/props, but preserve any field that currently has DOM focus
   useEffect(() => {
-    const activeElement = document.activeElement;
-    const isEditingField = activeElement?.id?.startsWith(`${case_.id}-`);
+    // Check which field (if any) currently has DOM focus
+    const activeElement = document.activeElement as HTMLElement;
+    const activeFieldId = activeElement?.id;
+    let currentlyFocusedField: string | null = null;
 
-    if (!isEditingField) {
-      setLocalData({
+    if (activeFieldId?.startsWith(`${case_.id}-`)) {
+      // Extract field name: "123-customerEmail" -> "customerEmail"
+      currentlyFocusedField = activeFieldId.replace(`${case_.id}-`, "");
+    }
+
+    console.log("[ExpandableRow] SSE Update Received:", {
+      caseId: case_.id,
+      isExpanded,
+      activeFieldId,
+      currentlyFocusedField,
+      activeElementTag: activeElement?.tagName,
+    });
+
+    // Update local data, but preserve the value of any field that has DOM focus
+    setLocalData((prev) => {
+      const newData = {
         customerEmail: case_.customerEmail || "",
         address: case_.address || "",
         purchaseDate: case_.purchaseDate
@@ -129,11 +147,31 @@ export function ExpandableRowDetails({
         statusDesc: case_.statusDesc || "",
         remarks: case_.remarks || "",
         cost: case_.cost?.toString() || "0",
-      });
-    }
+      };
+
+      // If a field has DOM focus right now, preserve its local value (don't overwrite while typing)
+      if (
+        currentlyFocusedField &&
+        prev[currentlyFocusedField as keyof typeof prev] !== undefined
+      ) {
+        console.log(
+          "[ExpandableRow] Preserving focused field:",
+          currentlyFocusedField
+        );
+        return {
+          ...newData,
+          [currentlyFocusedField]:
+            prev[currentlyFocusedField as keyof typeof prev],
+        };
+      }
+
+      console.log("[ExpandableRow] Updating all fields from SSE");
+      return newData;
+    });
   }, [case_]);
 
   const handleChange = (field: string, value: string) => {
+    // Only update local state - save happens on blur
     setLocalData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -160,6 +198,7 @@ export function ExpandableRowDetails({
     const value = localData[field as keyof typeof localData];
     const currentValue = case_[field as keyof WarrantyCaseWithRelations];
 
+    // Only save if value actually changed
     if (value !== (currentValue?.toString() || "")) {
       // Convert to appropriate type before saving
       let updateValue: any = value;
@@ -170,7 +209,13 @@ export function ExpandableRowDetails({
         updateValue = value ? new Date(value) : null;
       }
 
-      onUpdate({ [field]: updateValue });
+      // Use onUpdateField if available for debounced updates with save status tracking
+      // Otherwise fall back to immediate update
+      if (onUpdateField) {
+        await onUpdateField(case_.id, field, updateValue);
+      } else {
+        onUpdate({ [field]: updateValue });
+      }
     }
 
     // Release lock if locking is enabled

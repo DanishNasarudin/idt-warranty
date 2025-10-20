@@ -78,6 +78,14 @@ function WarrantyCaseRowComponent({
   // Local state for editing - prevents global re-renders
   const [editingField, setEditingField] = useState<string | null>(null);
 
+  // Wrapper to convert onUpdate signature for ExpandableRowDetails
+  const handleFieldUpdate = useCallback(
+    async (caseId: number, field: string, value: any) => {
+      return onUpdate(field, value);
+    },
+    [onUpdate]
+  );
+
   const handleEditStart = useCallback(
     async (field: string) => {
       // Try to acquire lock if locking is enabled, but don't block editing
@@ -268,6 +276,7 @@ function WarrantyCaseRowComponent({
           <ExpandableRowDetails
             case_={case_}
             onUpdate={onMultiFieldUpdate}
+            onUpdateField={handleFieldUpdate}
             onAcquireFieldLock={onAcquireFieldLock}
             onReleaseFieldLock={onReleaseFieldLock}
             userId={userId}
@@ -283,24 +292,73 @@ function WarrantyCaseRowComponent({
 export const WarrantyCaseRow = memo(
   WarrantyCaseRowComponent,
   (prevProps, nextProps) => {
-    // Only re-render if these specific props change
-    return (
-      prevProps.case_.id === nextProps.case_.id &&
-      prevProps.case_.updatedAt?.getTime() ===
-        nextProps.case_.updatedAt?.getTime() &&
-      prevProps.case_.createdAt?.getTime() ===
-        nextProps.case_.createdAt?.getTime() &&
-      prevProps.case_.serviceNo === nextProps.case_.serviceNo &&
-      prevProps.case_.idtPc === nextProps.case_.idtPc &&
-      prevProps.case_.receivedByStaffId === nextProps.case_.receivedByStaffId &&
-      prevProps.case_.servicedByStaffId === nextProps.case_.servicedByStaffId &&
-      prevProps.case_.customerName === nextProps.case_.customerName &&
-      prevProps.case_.customerContact === nextProps.case_.customerContact &&
-      prevProps.case_.status === nextProps.case_.status &&
-      prevProps.isExpanded === nextProps.isExpanded &&
-      prevProps.staffOptions.length === nextProps.staffOptions.length &&
-      prevProps.userId === nextProps.userId
-    );
+    // Basic checks - if these differ, definitely re-render
+    if (
+      prevProps.case_.id !== nextProps.case_.id ||
+      prevProps.isExpanded !== nextProps.isExpanded ||
+      prevProps.userId !== nextProps.userId ||
+      prevProps.staffOptions.length !== nextProps.staffOptions.length
+    ) {
+      return false;
+    }
+
+    // CRITICAL: Use object reference equality as the primary check
+    // Since displayedCases creates new objects when data changes,
+    // a reference change indicates an update occurred
+    if (prevProps.case_ !== nextProps.case_) {
+      // Reference changed, but check if it's a meaningful change
+      // by comparing updatedAt first
+      const prevUpdated = prevProps.case_.updatedAt?.getTime() || 0;
+      const nextUpdated = nextProps.case_.updatedAt?.getTime() || 0;
+
+      if (prevUpdated !== nextUpdated) {
+        // Timestamp changed, definitely re-render
+        return false;
+      }
+
+      // Timestamp same but reference changed (optimistic update or SSE without updatedAt)
+      // Check visible table row fields first (fastest check)
+      const visibleFieldsChanged =
+        prevProps.case_.serviceNo !== nextProps.case_.serviceNo ||
+        prevProps.case_.idtPc !== nextProps.case_.idtPc ||
+        prevProps.case_.receivedByStaffId !==
+          nextProps.case_.receivedByStaffId ||
+        prevProps.case_.servicedByStaffId !==
+          nextProps.case_.servicedByStaffId ||
+        prevProps.case_.customerName !== nextProps.case_.customerName ||
+        prevProps.case_.customerContact !== nextProps.case_.customerContact ||
+        prevProps.case_.status !== nextProps.case_.status;
+
+      if (visibleFieldsChanged) {
+        return false; // Visible field changed, re-render
+      }
+
+      // Check expandable fields (only if visible fields unchanged)
+      const expandableFieldsChanged =
+        prevProps.case_.customerEmail !== nextProps.case_.customerEmail ||
+        prevProps.case_.address !== nextProps.case_.address ||
+        prevProps.case_.purchaseDate?.getTime() !==
+          nextProps.case_.purchaseDate?.getTime() ||
+        prevProps.case_.invoice !== nextProps.case_.invoice ||
+        prevProps.case_.receivedItems !== nextProps.case_.receivedItems ||
+        prevProps.case_.pin !== nextProps.case_.pin ||
+        prevProps.case_.issues !== nextProps.case_.issues ||
+        prevProps.case_.solutions !== nextProps.case_.solutions ||
+        prevProps.case_.statusDesc !== nextProps.case_.statusDesc ||
+        prevProps.case_.remarks !== nextProps.case_.remarks ||
+        prevProps.case_.cost !== nextProps.case_.cost;
+
+      if (expandableFieldsChanged) {
+        return false; // Expandable field changed, re-render
+      }
+
+      // Reference changed but no actual field changes detected
+      // This might be a spurious update, skip re-render
+      return true;
+    }
+
+    // References are the same, skip re-render
+    return true;
   }
 );
 
