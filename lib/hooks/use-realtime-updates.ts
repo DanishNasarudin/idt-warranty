@@ -145,10 +145,16 @@ export function useRealtimeUpdates({
 
   // Connect to SSE endpoint
   const connect = useCallback(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      console.log("[SSE] Connection disabled, enabled:", enabled);
+      return;
+    }
+
+    console.log("[SSE] Initiating connection to branch:", branchId);
 
     // Clean up existing connection
     if (eventSourceRef.current) {
+      console.log("[SSE] Closing existing connection");
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -161,6 +167,7 @@ export function useRealtimeUpdates({
 
     try {
       const url = `/api/sse/warranty-updates?branchId=${branchId}`;
+      console.log("[SSE] Creating EventSource with URL:", url);
       const eventSource = new EventSource(url);
 
       eventSource.onmessage = handleMessage;
@@ -185,6 +192,8 @@ export function useRealtimeUpdates({
 
       eventSource.onerror = (error) => {
         console.error("[SSE] Connection error:", error);
+        console.log("[SSE] EventSource readyState:", eventSource.readyState);
+        console.log("[SSE] ReadyState: 0=CONNECTING, 1=OPEN, 2=CLOSED");
         setIsConnected(false);
         setConnectionError("Connection lost");
 
@@ -198,13 +207,18 @@ export function useRealtimeUpdates({
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay =
             baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current);
-          console.log(`[SSE] Reconnecting in ${delay}ms...`);
+          console.log(
+            `[SSE] Reconnecting in ${delay}ms... (attempt ${
+              reconnectAttemptsRef.current + 1
+            }/${maxReconnectAttempts})`
+          );
 
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current++;
             connect();
           }, delay);
         } else {
+          console.error("[SSE] Max reconnection attempts reached");
           setConnectionError("Failed to reconnect. Please refresh the page.");
         }
       };

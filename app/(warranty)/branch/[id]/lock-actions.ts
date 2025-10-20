@@ -48,20 +48,29 @@ export async function acquireFieldLock(
   const acquired = sseManager.acquireFieldLock(lock);
 
   if (acquired) {
-    // Broadcast lock to other users
+    console.log(
+      `[Lock] Acquired lock for case ${caseId}, field ${field}, broadcasting to branch ${branchId}`
+    );
+    // Broadcast lock to ALL connections (client will ignore if it's their own lock via optimistic updates)
     sseManager.broadcast(
       branchId,
       {
         type: "field-locked",
         data: lock,
-      },
-      userId
+      }
+      // No exclusion - broadcast to everyone including same user on different windows
+    );
+    console.log(
+      `[Lock] Broadcast complete, active connections: ${sseManager.getConnectionCount()}`
     );
 
     return { success: true, lock };
   } else {
     // Return existing lock information
     const existingLock = sseManager.getFieldLock(caseId, field);
+    console.log(
+      `[Lock] Failed to acquire lock for case ${caseId}, field ${field}, held by: ${existingLock?.userName}`
+    );
     return { success: false, existingLock };
   }
 }
@@ -83,14 +92,24 @@ export async function releaseFieldLock(
   const released = sseManager.releaseFieldLock(caseId, field, userId);
 
   if (released) {
-    // Broadcast unlock to other users
+    console.log(
+      `[Lock] Released lock for case ${caseId}, field ${field}, broadcasting to branch ${branchId}`
+    );
+    // Broadcast unlock to ALL connections (client will ignore if needed via optimistic updates)
     sseManager.broadcast(
       branchId,
       {
         type: "field-unlocked",
         data: { caseId, field, userId },
-      },
-      userId
+      }
+      // No exclusion - broadcast to everyone including same user on different windows
+    );
+    console.log(
+      `[Lock] Unlock broadcast complete, active connections: ${sseManager.getConnectionCount()}`
+    );
+  } else {
+    console.log(
+      `[Lock] Failed to release lock for case ${caseId}, field ${field}`
     );
   }
 

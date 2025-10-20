@@ -48,11 +48,17 @@ export async function GET(request: NextRequest) {
       ? `${user.firstName} ${user.lastName}`
       : user.username || user.emailAddresses[0]?.emailAddress || userId;
 
+  // Generate unique connection ID (supports same user on multiple devices/windows)
+  const connectionId = `${userId}:${branchIdNum}:${Date.now()}:${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+
   // Create a readable stream for SSE
   const stream = new ReadableStream({
     start(controller) {
       // Add connection to manager
       sseManager.addConnection({
+        connectionId,
         userId,
         userName,
         branchId: branchIdNum,
@@ -79,13 +85,13 @@ export async function GET(request: NextRequest) {
       controller.enqueue(new TextEncoder().encode(heartbeatData));
 
       console.log(
-        `[SSE] Connection established: ${userId} (branch: ${branchIdNum})`
+        `[SSE] Connection established: ${connectionId} (user: ${userId}, branch: ${branchIdNum})`
       );
     },
     cancel() {
       // Remove connection when client disconnects
-      sseManager.removeConnection(userId);
-      console.log(`[SSE] Connection cancelled: ${userId}`);
+      sseManager.removeConnection(connectionId);
+      console.log(`[SSE] Connection cancelled: ${connectionId}`);
     },
   });
 

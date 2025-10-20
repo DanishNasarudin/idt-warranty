@@ -211,16 +211,25 @@ export async function updateWarrantyCase(
     // Import sseManager dynamically to avoid initialization issues
     const { sseManager } = await import("@/lib/utils/sse-manager");
 
-    // Broadcast update to other users via SSE
+    // Broadcast update to ALL connections via SSE (including same user on different windows)
     if (userId) {
+      console.log(
+        `[Update] Broadcasting case-updated for case ${caseId} to branch ${branchId} to all connections`
+      );
+      console.log(
+        `[Update] Active connections: ${sseManager.getConnectionCount()}`
+      );
       sseManager.broadcast(
         branchId,
         {
           type: "case-updated",
           data: { caseId, updates },
-        },
-        userId // Exclude the user who made the update
+        }
+        // No exclusion - broadcast to everyone, client filters via optimistic updates
       );
+      console.log(`[Update] Broadcast complete`);
+    } else {
+      console.warn(`[Update] No userId available, skipping SSE broadcast`);
     }
 
     // Revalidate the page to reflect changes

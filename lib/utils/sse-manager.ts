@@ -18,23 +18,26 @@ class SSEConnectionManager {
 
   /**
    * Add a new SSE connection
+   * Uses connectionId as the unique key to support multiple connections per user per branch
    */
   addConnection(connection: SSEConnection): void {
-    this.connections.set(connection.userId, connection);
+    this.connections.set(connection.connectionId, connection);
     console.log(
-      `[SSE] Connection added: ${connection.userId} (branch: ${connection.branchId})`
+      `[SSE] Connection added: ${connection.connectionId} (user: ${connection.userId}, branch: ${connection.branchId})`
     );
   }
 
   /**
    * Remove an SSE connection and release all its locks
    */
-  removeConnection(userId: string): void {
-    const connection = this.connections.get(userId);
+  removeConnection(connectionId: string): void {
+    const connection = this.connections.get(connectionId);
     if (connection) {
-      this.connections.delete(userId);
-      this.releaseAllUserLocks(userId);
-      console.log(`[SSE] Connection removed: ${userId}`);
+      this.connections.delete(connectionId);
+      this.releaseAllUserLocks(connection.userId);
+      console.log(
+        `[SSE] Connection removed: ${connectionId} (user: ${connection.userId}, branch: ${connection.branchId})`
+      );
     }
   }
 
@@ -48,29 +51,50 @@ class SSEConnectionManager {
   }
 
   /**
-   * Broadcast a message to all connections in a branch (except sender)
+   * Broadcast a message to all connections in a branch (except sender connection)
+   * Excludes by connectionId to support same user on multiple windows/devices
    */
   broadcast(
     branchId: number,
     message: SSEMessage,
-    excludeUserId?: string
+    excludeConnectionId?: string
   ): void {
     const connections = this.getConnectionsByBranch(branchId);
 
+    console.log(
+      `[SSE Manager] Broadcasting ${
+        message.type
+      } to branch ${branchId}, found ${
+        connections.length
+      } connections, excluding connection: ${excludeConnectionId || "none"}`
+    );
+
+    let sentCount = 0;
     connections.forEach((conn) => {
-      if (conn.userId !== excludeUserId) {
+      if (conn.connectionId !== excludeConnectionId) {
         try {
           const data = `data: ${JSON.stringify(message)}\n\n`;
           conn.controller.enqueue(new TextEncoder().encode(data));
+          sentCount++;
+          console.log(
+            `[SSE Manager] Sent ${message.type} to connection ${conn.connectionId} (user: ${conn.userId})`
+          );
         } catch (error) {
           console.error(
-            `[SSE] Failed to send message to ${conn.userId}:`,
+            `[SSE] Failed to send message to ${conn.connectionId}:`,
             error
           );
-          this.removeConnection(conn.userId);
+          this.removeConnection(conn.connectionId);
         }
+      } else {
+        console.log(
+          `[SSE Manager] Skipping connection ${conn.connectionId} (sender)`
+        );
       }
     });
+    console.log(
+      `[SSE Manager] Broadcast complete, sent to ${sentCount} connections`
+    );
   }
 
   /**
@@ -85,10 +109,10 @@ class SSEConnectionManager {
           conn.controller.enqueue(new TextEncoder().encode(data));
         } catch (error) {
           console.error(
-            `[SSE] Failed to send global message to ${conn.userId}:`,
+            `[SSE] Failed to send global message to ${conn.connectionId}:`,
             error
           );
-          this.removeConnection(conn.userId);
+          this.removeConnection(conn.connectionId);
         }
       }
     });
@@ -213,8 +237,11 @@ class SSEConnectionManager {
           conn.controller.enqueue(new TextEncoder().encode(data));
           conn.lastHeartbeat = now;
         } catch (error) {
-          console.error(`[SSE] Heartbeat failed for ${conn.userId}:`, error);
-          this.removeConnection(conn.userId);
+          console.error(
+            `[SSE] Heartbeat failed for ${conn.connectionId}:`,
+            error
+          );
+          this.removeConnection(conn.connectionId);
         }
       });
     }, 30000); // Every 30 seconds

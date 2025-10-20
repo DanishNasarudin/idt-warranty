@@ -68,6 +68,7 @@ export type SSEMessage =
     };
 
 export type SSEConnection = {
+  connectionId: string; // Unique ID per connection/session
   userId: string;
   userName: string;
   branchId: number;

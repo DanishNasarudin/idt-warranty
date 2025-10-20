@@ -116,25 +116,17 @@ export async function transferCaseToBranch(
     const { userId } = await auth();
 
     if (userId) {
-      // Notify from branch
-      sseManager.broadcast(
-        fromBranchId,
-        {
-          type: "case-transferred-out",
-          data: { caseId, toBranchId, transferId: result.id },
-        },
-        userId
-      );
+      // Notify from branch - broadcast to all connections
+      sseManager.broadcast(fromBranchId, {
+        type: "case-transferred-out",
+        data: { caseId, toBranchId, transferId: result.id },
+      });
 
-      // Notify to branch
-      sseManager.broadcast(
-        toBranchId,
-        {
-          type: "case-transferred-in",
-          data: { caseId, fromBranchId, transferId: result.id },
-        },
-        userId
-      );
+      // Notify to branch - broadcast to all connections
+      sseManager.broadcast(toBranchId, {
+        type: "case-transferred-in",
+        data: { caseId, fromBranchId, transferId: result.id },
+      });
     }
 
     // Revalidate both branch pages
