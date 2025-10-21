@@ -4,6 +4,7 @@ import {
   StaffManagement,
 } from "@/components/custom/settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import {
   createBranch as createBranchAction,
   createCaseScope as createCaseScopeAction,
@@ -24,6 +25,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
+  // Get current user and role
+  const { userId } = await auth();
+  const user = await currentUser();
+  const userRole = user?.privateMetadata?.role as string | undefined;
+  const isAdmin = userRole === "Admin";
+
   // Fetch initial data on the server
   const [branches, staff, branchesForSelect, caseScopes] = await Promise.all([
     getAllBranches(),
@@ -126,6 +133,7 @@ export default async function SettingsPage() {
               onCreateBranch={handleCreateBranch}
               onUpdateBranch={handleUpdateBranch}
               onDeleteBranch={handleDeleteBranch}
+              isAdmin={isAdmin}
             />
           </TabsContent>
           <TabsContent value="staff" className="mt-6">
@@ -143,6 +151,7 @@ export default async function SettingsPage() {
               onCreateCaseScope={handleCreateCaseScope}
               onUpdateCaseScope={handleUpdateCaseScope}
               onDeleteCaseScope={handleDeleteCaseScope}
+              isAdmin={isAdmin}
             />
           </TabsContent>
         </Tabs>

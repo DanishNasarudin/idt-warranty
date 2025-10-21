@@ -67,6 +67,7 @@ type BranchManagementProps = {
     }
   ) => Promise<any>;
   onDeleteBranch: (id: number) => Promise<void>;
+  isAdmin: boolean;
 };
 
 export function BranchManagement({
@@ -74,6 +75,7 @@ export function BranchManagement({
   onCreateBranch,
   onUpdateBranch,
   onDeleteBranch,
+  isAdmin,
 }: BranchManagementProps) {
   const [branches, setBranches] = useState<BranchWithCounts[]>(initialBranches);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -201,11 +203,16 @@ export function BranchManagement({
           <h2 className="text-2xl font-bold">Branches</h2>
           <p className="text-muted-foreground">
             Manage branch locations and their information
+            {!isAdmin && (
+              <span className="block text-sm text-amber-600 dark:text-amber-500 mt-1">
+                👤 View-only mode: Admin access required to edit
+              </span>
+            )}
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <ActionButton action="add" label="Add Branch" />
+            <ActionButton action="add" label="Add Branch" disabled={!isAdmin} />
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreate}>
@@ -343,6 +350,7 @@ export function BranchManagement({
                         icon={Pencil}
                         label="Edit branch"
                         onClick={() => openEditDialog(branch)}
+                        disabled={!isAdmin}
                       />
                       <IconButton
                         variant="ghost"
@@ -351,6 +359,7 @@ export function BranchManagement({
                         label="Delete branch"
                         onClick={() => setDeletingBranch(branch)}
                         className="text-destructive hover:text-destructive"
+                        disabled={!isAdmin}
                       />
                     </div>
                   </TableCell>

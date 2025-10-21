@@ -47,6 +47,7 @@ type CaseScopeManagementProps = {
   onCreateCaseScope: (data: { code: string }) => Promise<any>;
   onUpdateCaseScope: (id: number, data: { code?: string }) => Promise<any>;
   onDeleteCaseScope: (id: number) => Promise<void>;
+  isAdmin: boolean;
 };
 
 export function CaseScopeManagement({
@@ -54,6 +55,7 @@ export function CaseScopeManagement({
   onCreateCaseScope,
   onUpdateCaseScope,
   onDeleteCaseScope,
+  isAdmin,
 }: CaseScopeManagementProps) {
   const [caseScopes, setCaseScopes] =
     useState<CaseScopeWithCounts[]>(initialCaseScopes);
@@ -127,11 +129,20 @@ export function CaseScopeManagement({
           <h2 className="text-2xl font-bold">Case Scopes</h2>
           <p className="text-muted-foreground">
             Manage warranty case scope types (e.g., LOCAL, OTHER)
+            {!isAdmin && (
+              <span className="block text-sm text-amber-600 dark:text-amber-500 mt-1">
+                👤 View-only mode: Admin access required to edit
+              </span>
+            )}
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <ActionButton action="add" label="Add Case Scope" />
+            <ActionButton
+              action="add"
+              label="Add Case Scope"
+              disabled={!isAdmin}
+            />
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreate}>
@@ -205,6 +216,7 @@ export function CaseScopeManagement({
                         icon={Pencil}
                         label="Edit case scope"
                         onClick={() => openEditDialog(caseScope)}
+                        disabled={!isAdmin}
                       />
                       <IconButton
                         variant="ghost"
@@ -212,6 +224,7 @@ export function CaseScopeManagement({
                         label="Delete case scope"
                         onClick={() => setDeletingCaseScope(caseScope)}
                         className="text-destructive hover:text-destructive"
+                        disabled={!isAdmin}
                       />
                     </div>
                   </TableCell>
