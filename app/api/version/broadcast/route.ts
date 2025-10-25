@@ -1,7 +1,7 @@
 /**
  * Broadcast Version Update API
  *
- * Manually triggers a version update broadcast to all connected SSE clients.
+ * Manually triggers a version update broadcast to all connected Socket.IO clients.
  * Useful for testing or triggering immediate notifications after deployment.
  *
  * POST /api/version/broadcast
@@ -10,7 +10,7 @@
  */
 
 import { getVersionInfo } from "@/lib/utils/app-version";
-import { sseManager } from "@/lib/utils/sse-manager";
+import { emitToAll } from "@/lib/utils/socket-emitter";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -28,23 +28,15 @@ export async function POST(request: NextRequest) {
     // Get current version info
     const versionInfo = getVersionInfo();
 
-    // Broadcast to all connected clients
-    const message = {
-      type: "app-version-updated" as const,
-      data: versionInfo,
-    };
+    // Broadcast to all connected clients via Socket.IO
+    await emitToAll("app-version-updated", versionInfo);
 
-    sseManager.broadcastToAll(message);
-
-    console.log(
-      `[Version Broadcast] Sent to ${sseManager.getConnectionCount()} clients`
-    );
+    console.log(`[Version Broadcast] Sent to all connected Socket.IO clients`);
 
     return NextResponse.json({
       success: true,
       message: "Version update broadcast sent",
       versionInfo,
-      clientCount: sseManager.getConnectionCount(),
     });
   } catch (error) {
     console.error("[Version Broadcast] Error:", error);

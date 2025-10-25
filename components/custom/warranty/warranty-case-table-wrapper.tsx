@@ -7,7 +7,7 @@ import {
   WarrantyCaseUpdate,
   WarrantyCaseWithRelations,
 } from "@/lib/types/warranty";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import {
   CreateWarrantyCaseDialog,
@@ -39,6 +39,7 @@ export function WarrantyCaseTableWrapper({
   onCreateCase,
 }: WarrantyCaseTableWrapperProps) {
   const { userId } = useAuth();
+  const { user } = useUser();
 
   // Use the custom hook for all sync and collaborative editing logic
   const {
@@ -49,6 +50,7 @@ export function WarrantyCaseTableWrapper({
   } = useWarrantySync({
     branchId,
     userId: userId || null,
+    userName: user?.fullName || user?.firstName || null,
     initialCases,
     onUpdateCase,
     enabled: !!userId,

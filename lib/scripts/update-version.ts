@@ -53,9 +53,19 @@ async function updateAppVersion() {
     console.log("✅ App version updated successfully!");
     console.log("Active Version ID:", appVersion.id);
 
-    // Optional: Broadcast version update via SSE
-    // This would require importing sseManager and calling broadcastToAll
-    // For now, we'll rely on polling to detect the update
+    // Broadcast version update via Socket.IO
+    try {
+      const { emitToAll } = await import("../utils/socket-emitter");
+      await emitToAll("app-version-updated", {
+        version: appVersion.version,
+        buildTimestamp: appVersion.buildTimestamp,
+        commitHash: appVersion.commitHash,
+      });
+      console.log("📡 Version update broadcasted via Socket.IO");
+    } catch (broadcastError) {
+      console.warn("⚠️ Failed to broadcast version update:", broadcastError);
+      // Non-critical - polling will still detect the update
+    }
 
     return appVersion;
   } catch (error) {

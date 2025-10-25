@@ -2,6 +2,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import React from "react";
 import ClerkProvider from "./providers/clerk-provider";
+import { SocketProvider } from "./providers/socket-provider";
 import { ThemeProvider } from "./providers/theme-provider";
 import { VersionCheckProvider } from "./providers/version-check-provider";
 
@@ -19,10 +20,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <ClerkProvider>
-        <VersionCheckProvider>
-          {children}
-          <Toaster richColors closeButton />
-        </VersionCheckProvider>
+        <SocketProvider>
+          <VersionCheckProvider>
+            {children}
+            <Toaster richColors closeButton />
+          </VersionCheckProvider>
+        </SocketProvider>
       </ClerkProvider>
     </ThemeProvider>
   );

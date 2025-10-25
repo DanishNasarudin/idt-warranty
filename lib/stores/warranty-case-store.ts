@@ -11,6 +11,7 @@ type WarrantyCaseStore = {
   // Actions
   setCases: (cases: WarrantyCaseWithRelations[]) => void;
   setStaffOptions: (staff: StaffOption[]) => void;
+  addCase: (caseItem: WarrantyCaseWithRelations) => void;
   updateCase: (
     caseId: number,
     updates: Partial<WarrantyCaseWithRelations>
@@ -31,6 +32,15 @@ export const useWarrantyCaseStore = create<WarrantyCaseStore>((set, get) => ({
   expandedRows: new Set(),
 
   setCases: (cases) => set({ cases }),
+
+  addCase: (caseItem) =>
+    set((state) => {
+      // Prevent duplicate insertion
+      const exists = state.cases.some((c) => c.id === caseItem.id);
+      if (exists) return { cases: state.cases };
+
+      return { cases: [caseItem, ...state.cases] };
+    }),
 
   setStaffOptions: (staff) => set({ staffOptions: staff }),
 

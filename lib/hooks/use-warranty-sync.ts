@@ -22,6 +22,7 @@ const FADE_OUT_DELAY = 2000;
 type UseWarrantySyncOptions = {
   branchId: number;
   userId: string | null;
+  userName: string | null;
   initialCases: WarrantyCaseWithRelations[];
   onUpdateCase: (caseId: number, updates: WarrantyCaseUpdate) => Promise<void>;
   enabled?: boolean;
@@ -49,6 +50,7 @@ type UseWarrantySyncReturn = {
 export function useWarrantySync({
   branchId,
   userId,
+  userName,
   initialCases,
   onUpdateCase,
   enabled = true,
@@ -68,7 +70,7 @@ export function useWarrantySync({
     pendingUpdates,
   } = useCollaborativeEditingStore();
 
-  const { handleRemoteUpdate } = useWarrantyCaseStore();
+  const { handleRemoteUpdate, addCase, deleteCase } = useWarrantyCaseStore();
 
   // Monitor pending updates to show saving status
   useEffect(() => {
@@ -233,10 +235,94 @@ export function useWarrantySync({
   const { isConnected, connectionError } = useRealtimeUpdates({
     branchId,
     userId: userId || "",
+    userName: userName || "",
     onCaseUpdate: handleCaseUpdate,
+    onCaseCreated: (
+      newCase: WarrantyCaseWithRelations,
+      originUserId?: string
+    ) => {
+      console.log(
+        "[Real-time] New case received:",
+        newCase,
+        "originUserId:",
+        originUserId
+      );
+
+      // Add to collaborative store server data and to UI store
+      setServerData(newCase.id, newCase);
+      try {
+        addCase(newCase);
+      } catch (e) {
+        // Fallback: directly set cases if addCase not available
+        console.error("[Real-time] addCase failed:", e);
+      }
+
+      // Notify warranty case store to update UI
+      handleRemoteUpdate(newCase.id, newCase as any);
+
+      // Notify user with a toast unless the current user created it
+      try {
+        if (!originUserId || originUserId !== userId) {
+          const serviceNo = newCase.serviceNo || "(no service no)";
+          const customer = newCase.customerName
+            ? ` — ${newCase.customerName}`
+            : "";
+          toast.success(`New case ${serviceNo} created${customer}`);
+        } else {
+          console.log(
+            "[Real-time] Suppressing toast - current user created the case"
+          );
+        }
+      } catch (err) {
+        console.error("[Real-time] Failed to show toast for new case:", err);
+      }
+    },
+    onCaseDeleted: (
+      caseId: number,
+      originUserId?: string,
+      serviceNo?: string,
+      customerName?: string
+    ) => {
+      try {
+        console.log(
+          "[Real-time] Case deleted received:",
+          caseId,
+          originUserId,
+          serviceNo,
+          customerName
+        );
+
+        // Centralized cleanup of collaborative state for this case
+        try {
+          const collab = useCollaborativeEditingStore.getState();
+          collab.clearCaseState(caseId);
+        } catch (e) {
+          console.error("[Real-time] Failed to clear collaborative state:", e);
+        }
+
+        // Remove case from UI
+        try {
+          deleteCase(caseId);
+        } catch (e) {
+          console.error("[Real-time] deleteCase failed:", e);
+        }
+
+        // Notify user unless creator - prefer serviceNo for a friendlier message
+        if (!originUserId || originUserId !== userId) {
+          const idText = serviceNo ? `${serviceNo}` : `#${caseId}`;
+          const customerText = customerName ? ` — ${customerName}` : "";
+          toast.success(`Case ${idText} deleted${customerText}`);
+        } else {
+          console.log(
+            "[Real-time] Suppressing delete toast - current user performed deletion"
+          );
+        }
+      } catch (err) {
+        console.error("[Real-time] Failed to handle case-deleted:", err);
+      }
+    },
     onSyncRequired: handleSyncRequired,
-    syncIntervalMs: 60000, // 1 minute
-    enabled: enabled && !!userId,
+    enabled: enabled && !!userId && !!userName,
   });
 
   // Show connection error

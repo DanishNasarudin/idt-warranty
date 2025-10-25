@@ -6,7 +6,8 @@
 "use server";
 
 import { FieldLock } from "@/lib/types/realtime";
-import { sseManager } from "@/lib/utils/sse-manager";
+import { emitToBranch } from "@/lib/utils/socket-emitter";
+import { socketManager } from "@/lib/utils/socket-manager";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 /**
@@ -45,29 +46,22 @@ export async function acquireFieldLock(
     expiresAt: Date.now() + 30000, // 30 seconds
   };
 
-  const acquired = sseManager.acquireFieldLock(lock);
+  const acquired = socketManager.acquireFieldLock(lock);
 
   if (acquired) {
     console.log(
       `[Lock] Acquired lock for case ${caseId}, field ${field}, broadcasting to branch ${branchId}`
     );
-    // Broadcast lock to ALL connections (client will ignore if it's their own lock via optimistic updates)
-    sseManager.broadcast(
-      branchId,
-      {
-        type: "field-locked",
-        data: lock,
-      }
-      // No exclusion - broadcast to everyone including same user on different windows
-    );
+    // Broadcast lock to ALL connections via Socket.IO
+    await emitToBranch(branchId, "field-lock-acquired", lock);
     console.log(
-      `[Lock] Broadcast complete, active connections: ${sseManager.getConnectionCount()}`
+      `[Lock] Broadcast complete, active connections: ${socketManager.getConnectionCount()}`
     );
 
     return { success: true, lock };
   } else {
     // Return existing lock information
-    const existingLock = sseManager.getFieldLock(caseId, field);
+    const existingLock = socketManager.getFieldLock(caseId, field);
     console.log(
       `[Lock] Failed to acquire lock for case ${caseId}, field ${field}, held by: ${existingLock?.userName}`
     );
@@ -89,23 +83,16 @@ export async function releaseFieldLock(
     throw new Error("Unauthorized");
   }
 
-  const released = sseManager.releaseFieldLock(caseId, field, userId);
+  const released = socketManager.releaseFieldLock(caseId, field, userId);
 
   if (released) {
     console.log(
       `[Lock] Released lock for case ${caseId}, field ${field}, broadcasting to branch ${branchId}`
     );
-    // Broadcast unlock to ALL connections (client will ignore if needed via optimistic updates)
-    sseManager.broadcast(
-      branchId,
-      {
-        type: "field-unlocked",
-        data: { caseId, field, userId },
-      }
-      // No exclusion - broadcast to everyone including same user on different windows
-    );
+    // Broadcast unlock to ALL connections via Socket.IO
+    await emitToBranch(branchId, "field-lock-released", { caseId, field });
     console.log(
-      `[Lock] Unlock broadcast complete, active connections: ${sseManager.getConnectionCount()}`
+      `[Lock] Unlock broadcast complete, active connections: ${socketManager.getConnectionCount()}`
     );
   } else {
     console.log(
@@ -152,7 +139,7 @@ export async function refreshFieldLock(
     expiresAt: Date.now() + 30000, // 30 seconds
   };
 
-  const acquired = sseManager.acquireFieldLock(lock);
+  const acquired = socketManager.acquireFieldLock(lock);
 
   return { success: acquired, lock: acquired ? lock : undefined };
 }

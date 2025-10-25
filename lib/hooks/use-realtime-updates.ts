@@ -1,52 +1,74 @@
 /**
- * Hook for managing SSE connection and real-time updates
+ * Hook for managing Socket.IO connection and real-time updates
  *
  * Features:
- * - Automatic connection/reconnection
+ * - WebSocket connection with automatic reconnection
  * - Handles disconnection gracefully
  * - Processes real-time updates from other users
- * - Periodic sync with server
+ * - Field locking with visual indicators
  * - Prevents UI disruption during updates
  */
 
 "use client";
 
-import { SSEMessage } from "@/lib/types/realtime";
+import { useSocket } from "@/lib/providers/socket-provider";
 import { WarrantyCaseWithRelations } from "@/lib/types/warranty";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useCollaborativeEditingStore } from "../stores/collaborative-editing-store";
 
 type UseRealtimeUpdatesOptions = {
   branchId: number;
   userId: string;
+  userName: string;
   onCaseUpdate?: (caseId: number, updates: Record<string, any>) => void;
+  // originUserId is the user who created the case (if known)
+  onCaseCreated?: (
+    newCase: WarrantyCaseWithRelations,
+    originUserId?: string
+  ) => void;
+  // serviceNo is optional and may be included for friendlier UI messages
+  onCaseDeleted?: (
+    caseId: number,
+    originUserId?: string,
+    serviceNo?: string,
+    customerName?: string
+  ) => void;
   onSyncRequired?: (caseId: number) => void;
-  syncIntervalMs?: number; // Default: 60000 (1 minute)
   enabled?: boolean;
 };
 
 export function useRealtimeUpdates({
   branchId,
   userId,
+  userName,
   onCaseUpdate,
+  onCaseCreated,
+  onCaseDeleted,
   onSyncRequired,
-  syncIntervalMs = 60000,
   enabled = true,
 }: UseRealtimeUpdatesOptions) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const maxReconnectAttempts = 10;
-  const baseReconnectDelay = 1000; // 1 second
-  const connectionTimeout = 15000; // 15 seconds - if no data received, connection is stalled
+  const { socket, isConnected } = useSocket();
 
   // Use refs to store callbacks to prevent reconnections when they change
   const onCaseUpdateRef = useRef(onCaseUpdate);
   const onSyncRequiredRef = useRef(onSyncRequired);
+  const hasJoinedRoomRef = useRef(false);
+  const currentBranchRef = useRef<number | null>(null);
+
+  // Keep created callback ref
+  const onCaseCreatedRef = useRef<
+    | ((newCase: WarrantyCaseWithRelations, originUserId?: string) => void)
+    | undefined
+  >(undefined);
+  const onCaseDeletedRef = useRef<
+    | ((
+        caseId: number,
+        originUserId?: string,
+        serviceNo?: string,
+        customerName?: string
+      ) => void)
+    | undefined
+  >(undefined);
 
   // Update refs when callbacks change
   useEffect(() => {
@@ -57,248 +79,267 @@ export function useRealtimeUpdates({
     onSyncRequiredRef.current = onSyncRequired;
   }, [onSyncRequired]);
 
+  useEffect(() => {
+    onCaseCreatedRef.current = onCaseCreated || undefined;
+  }, [onCaseCreated]);
+
+  useEffect(() => {
+    onCaseDeletedRef.current = onCaseDeleted || undefined;
+  }, [onCaseDeleted]);
+
   const { setFieldLock, removeFieldLock, updateServerData, isEditing } =
     useCollaborativeEditingStore();
 
-  // Process SSE messages
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
-      try {
-        // Clear connection timeout - we received data, connection is alive
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-
-        const message: SSEMessage = JSON.parse(event.data);
-
-        switch (message.type) {
-          case "connection-established":
-            console.log("[SSE] Connection established:", message.data);
-            setIsConnected(true);
-            setConnectionError(null);
-            reconnectAttemptsRef.current = 0;
-            break;
-
-          case "field-locked":
-            console.log("[SSE] Field locked:", message.data);
-            setFieldLock(message.data);
-            break;
-
-          case "field-unlocked":
-            console.log("[SSE] Field unlocked:", message.data);
-            removeFieldLock(message.data.caseId, message.data.field);
-            break;
-
-          case "case-updated": {
-            console.log("[SSE] Case updated:", message.data);
-            const { caseId, updates } = message.data;
-
-            // Only update fields that are not currently being edited
-            const filteredUpdates: Record<string, any> = {};
-            Object.entries(updates).forEach(([field, value]) => {
-              const editing = isEditing(caseId, field);
-              console.log(
-                `[SSE] Field ${field}: editing=${editing}, value=`,
-                value
-              );
-              if (!editing) {
-                filteredUpdates[field] = value;
-              } else {
-                console.log(
-                  `[SSE] Skipping field ${field} - currently being edited`
-                );
-              }
-            });
-
-            console.log("[SSE] Filtered updates:", filteredUpdates);
-
-            // Update server data (but not optimistic updates)
-            if (Object.keys(filteredUpdates).length > 0) {
-              updateServerData(caseId, filteredUpdates);
-              onCaseUpdateRef.current?.(caseId, filteredUpdates);
-              console.log("[SSE] Applied updates to store");
-            } else {
-              console.log("[SSE] No updates applied - all fields being edited");
-            }
-            break;
-          }
-
-          case "sync-required":
-            console.log("[SSE] Sync required:", message.data);
-            onSyncRequiredRef.current?.(message.data.caseId);
-            break;
-
-          case "heartbeat":
-            // Silent heartbeat
-            break;
-
-          default:
-            console.warn("[SSE] Unknown message type:", message);
-        }
-      } catch (error) {
-        console.error("[SSE] Failed to parse message:", error);
-      }
-    },
-    [setFieldLock, removeFieldLock, updateServerData, isEditing]
-  );
-
-  // Connect to SSE endpoint
-  const connect = useCallback(() => {
-    if (!enabled) {
-      console.log("[SSE] Connection disabled, enabled:", enabled);
+  // Setup Socket.IO event listeners
+  useEffect(() => {
+    if (!socket || !enabled || !isConnected) {
+      console.log("[Socket.IO] Not setting up listeners:", {
+        hasSocket: !!socket,
+        enabled,
+        isConnected,
+      });
       return;
     }
 
-    console.log("[SSE] Initiating connection to branch:", branchId);
+    console.log(
+      "[Socket.IO] Setting up event listeners for branch:",
+      branchId,
+      "userId:",
+      userId,
+      "userName:",
+      userName
+    );
 
-    // Clean up existing connection
-    if (eventSourceRef.current) {
-      console.log("[SSE] Closing existing connection");
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    // Clear any existing connection timeout
-    if (connectionTimeoutRef.current) {
-      clearTimeout(connectionTimeoutRef.current);
-      connectionTimeoutRef.current = null;
-    }
-
-    try {
-      const url = `/api/sse/warranty-updates?branchId=${branchId}`;
-      console.log("[SSE] Creating EventSource with URL:", url);
-      const eventSource = new EventSource(url);
-
-      eventSource.onmessage = handleMessage;
-
-      eventSource.onopen = () => {
-        console.log("[SSE] Connection opened");
-        // Start connection timeout - if no message received within timeout, reconnect
-        connectionTimeoutRef.current = setTimeout(() => {
-          console.warn(
-            "[SSE] Connection timeout - no data received, reconnecting..."
-          );
-          setIsConnected(false);
-          setConnectionError("Connection stalled");
-          eventSource.close();
-          // Trigger reconnection
-          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-            reconnectAttemptsRef.current++;
-            connect();
-          }
-        }, connectionTimeout);
-      };
-
-      eventSource.onerror = (error) => {
-        console.error("[SSE] Connection error:", error);
-        console.log("[SSE] EventSource readyState:", eventSource.readyState);
-        console.log("[SSE] ReadyState: 0=CONNECTING, 1=OPEN, 2=CLOSED");
-        setIsConnected(false);
-        setConnectionError("Connection lost");
-
-        // Clear connection timeout
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-          connectionTimeoutRef.current = null;
-        }
-
-        // Attempt to reconnect with exponential backoff
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-          const delay =
-            baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current);
-          console.log(
-            `[SSE] Reconnecting in ${delay}ms... (attempt ${
-              reconnectAttemptsRef.current + 1
-            }/${maxReconnectAttempts})`
-          );
-
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current++;
-            connect();
-          }, delay);
-        } else {
-          console.error("[SSE] Max reconnection attempts reached");
-          setConnectionError("Failed to reconnect. Please refresh the page.");
-        }
-      };
-
-      eventSourceRef.current = eventSource;
-    } catch (error) {
-      console.error("[SSE] Failed to create connection:", error);
-      setConnectionError("Failed to establish connection");
-    }
-  }, [enabled, branchId, handleMessage, connectionTimeout]);
-
-  // Disconnect from SSE endpoint
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (connectionTimeoutRef.current) {
-      clearTimeout(connectionTimeoutRef.current);
-      connectionTimeoutRef.current = null;
-    }
-
-    if (syncIntervalRef.current) {
-      clearInterval(syncIntervalRef.current);
-      syncIntervalRef.current = null;
-    }
-
-    setIsConnected(false);
-  }, []);
-
-  // Periodic sync to ensure data consistency
-  const startPeriodicSync = useCallback(() => {
-    if (syncIntervalRef.current) {
-      clearInterval(syncIntervalRef.current);
-    }
-
-    syncIntervalRef.current = setInterval(() => {
-      if (onSyncRequiredRef.current) {
-        console.log("[SSE] Periodic sync triggered");
-        onSyncRequiredRef.current(-1); // -1 indicates full sync
+    // Only join room once per branch
+    if (!hasJoinedRoomRef.current || currentBranchRef.current !== branchId) {
+      // Leave old branch if switching
+      if (
+        currentBranchRef.current !== null &&
+        currentBranchRef.current !== branchId
+      ) {
+        socket.emit("leave-branch", { branchId: currentBranchRef.current });
+        console.log(
+          "[Socket.IO] Left previous branch:",
+          currentBranchRef.current
+        );
       }
-    }, syncIntervalMs);
-  }, [syncIntervalMs]);
 
-  // Connect on mount, disconnect on unmount
-  // Only reconnect when branchId or userId changes, not on every render
-  useEffect(() => {
-    if (enabled) {
-      connect();
-      startPeriodicSync();
+      // Join the branch room
+      socket.emit("join-branch", { branchId });
+      console.log(
+        "[Socket.IO] Emitted join-branch event with branchId:",
+        branchId
+      );
+
+      // Send connection establishment
+      socket.emit("connection-established", { userId, userName, branchId });
+      console.log("[Socket.IO] Emitted connection-established event:", {
+        userId,
+        userName,
+        branchId,
+      });
+
+      hasJoinedRoomRef.current = true;
+      currentBranchRef.current = branchId;
     }
 
-    return () => {
-      disconnect();
+    // Handle field lock acquired
+    const handleFieldLockAcquired = (data: {
+      caseId: number;
+      field: string;
+      userId: string;
+      userName: string;
+      expiresAt: number;
+    }) => {
+      console.log("[Socket.IO] Field lock acquired:", data);
+      setFieldLock({ ...data, timestamp: Date.now() });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, branchId, userId]); // Only depend on values that should trigger reconnection
+
+    // Handle field lock released
+    const handleFieldLockReleased = (data: {
+      caseId: number;
+      field: string;
+    }) => {
+      console.log("[Socket.IO] Field lock released:", data);
+      removeFieldLock(data.caseId, data.field);
+    };
+
+    // Handle case updated
+    const handleCaseUpdated = (data: {
+      caseId: number;
+      updates: Record<string, any>;
+      userId: string;
+    }) => {
+      console.log("[Socket.IO] Case updated:", data);
+      const { caseId, updates } = data;
+
+      // Normalize updatedAt if it's a string (socket serializes Dates)
+      if (data.updates && typeof data.updates.updatedAt === "string") {
+        try {
+          data.updates.updatedAt = new Date(data.updates.updatedAt);
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      // Only update fields that are not currently being edited
+      const filteredUpdates: Record<string, any> = {};
+      Object.entries(updates).forEach(([field, value]) => {
+        const editing = isEditing(caseId, field);
+        console.log(
+          `[Socket.IO] Field ${field}: editing=${editing}, value=`,
+          value
+        );
+        if (!editing) {
+          filteredUpdates[field] = value;
+        } else {
+          console.log(
+            `[Socket.IO] Skipping field ${field} - currently being edited`
+          );
+        }
+      });
+
+      console.log("[Socket.IO] Filtered updates:", filteredUpdates);
+
+      // Update server data (but not optimistic updates)
+      if (Object.keys(filteredUpdates).length > 0) {
+        updateServerData(caseId, filteredUpdates);
+        onCaseUpdateRef.current?.(caseId, filteredUpdates);
+        console.log("[Socket.IO] Applied updates to store");
+      } else {
+        console.log("[Socket.IO] No updates applied - all fields being edited");
+      }
+    };
+
+    // Handle sync required
+    const handleSyncRequired = (data: { caseId: number }) => {
+      console.log("[Socket.IO] Sync required:", data);
+      onSyncRequiredRef.current?.(data.caseId);
+    };
+
+    // Handle revalidate
+    const handleReceiveRevalidate = () => {
+      console.log("[Socket.IO] Revalidate received");
+      onSyncRequiredRef.current?.(-1); // -1 indicates full sync
+    };
+
+    // Register event listeners
+    socket.on("field-lock-acquired", handleFieldLockAcquired);
+    socket.on("field-lock-released", handleFieldLockReleased);
+    socket.on("case-updated", handleCaseUpdated);
+    // Handle case created by other clients
+    const handleCaseCreated = (data: { case: any; userId?: string }) => {
+      try {
+        console.log("[Socket.IO] Case created received:", data);
+        const raw = data.case as any;
+        const originUserId = data.userId;
+
+        // Server and socket emitters serialize Dates to strings. Convert known date fields back to Date objects.
+        const newCase: WarrantyCaseWithRelations = {
+          ...raw,
+          createdAt:
+            raw.createdAt && typeof raw.createdAt === "string"
+              ? new Date(raw.createdAt)
+              : raw.createdAt,
+          updatedAt:
+            raw.updatedAt && typeof raw.updatedAt === "string"
+              ? new Date(raw.updatedAt)
+              : raw.updatedAt,
+          purchaseDate:
+            raw.purchaseDate && typeof raw.purchaseDate === "string"
+              ? new Date(raw.purchaseDate)
+              : raw.purchaseDate,
+        } as WarrantyCaseWithRelations;
+
+        // Update collaborative store server data for the new case
+        // Import store lazily to avoid client/server mismatch
+        import("@/lib/stores/collaborative-editing-store").then((mod) => {
+          mod.useCollaborativeEditingStore
+            .getState()
+            .setServerData(newCase.id, newCase);
+        });
+
+        // Call provided callback so UI can insert the case into its list/state
+        onCaseCreatedRef.current?.(newCase, originUserId);
+      } catch (err) {
+        console.error("[Socket.IO] Failed handling case-created:", err);
+      }
+    };
+
+    socket.on("case-created", handleCaseCreated);
+    // Handle case deleted by other clients
+    const handleCaseDeleted = (data: {
+      caseId: number;
+      userId?: string;
+      serviceNo?: string;
+      customerName?: string;
+    }) => {
+      try {
+        console.log("[Socket.IO] Case deleted received:", data);
+        const caseId = data.caseId;
+        const originUserId = data.userId;
+        const serviceNo = data.serviceNo;
+        const customerName = data.customerName;
+
+        // Call provided callback so UI can remove the case from its list/state
+        onCaseDeletedRef.current?.(
+          caseId,
+          originUserId,
+          serviceNo,
+          customerName
+        );
+      } catch (err) {
+        console.error("[Socket.IO] Failed handling case-deleted:", err);
+      }
+    };
+
+    socket.on("case-deleted", handleCaseDeleted);
+    socket.on("sync-required", handleSyncRequired);
+    socket.on("receive-revalidate", handleReceiveRevalidate);
+
+    // Cleanup
+    return () => {
+      console.log("[Socket.IO] Cleaning up event listeners");
+      socket.off("field-lock-acquired", handleFieldLockAcquired);
+      socket.off("field-lock-released", handleFieldLockReleased);
+      socket.off("case-updated", handleCaseUpdated);
+      socket.off("case-created", handleCaseCreated);
+      socket.off("case-deleted", handleCaseDeleted);
+      socket.off("sync-required", handleSyncRequired);
+      socket.off("receive-revalidate", handleReceiveRevalidate);
+
+      // Leave the branch room only when component unmounts
+      if (currentBranchRef.current !== null) {
+        socket.emit("leave-branch", { branchId: currentBranchRef.current });
+        console.log("[Socket.IO] Left branch:", currentBranchRef.current);
+        hasJoinedRoomRef.current = false;
+        currentBranchRef.current = null;
+      }
+    };
+  }, [
+    socket,
+    enabled,
+    isConnected,
+    branchId,
+    userId,
+    userName,
+    setFieldLock,
+    removeFieldLock,
+    updateServerData,
+    isEditing,
+  ]);
 
   // Handle visibility change (page focus/blur)
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !socket) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Page is hidden, connection will be maintained
-        console.log("[SSE] Page hidden");
+        console.log("[Socket.IO] Page hidden");
       } else {
-        // Page is visible again, reconnect if needed
-        console.log("[SSE] Page visible");
-        if (!isConnected) {
-          connect();
-        }
+        console.log("[Socket.IO] Page visible");
         // Trigger a sync when page becomes visible
-        if (onSyncRequiredRef.current) {
+        if (isConnected && onSyncRequiredRef.current) {
           onSyncRequiredRef.current(-1);
         }
       }
@@ -309,14 +350,13 @@ export function useRealtimeUpdates({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, isConnected]); // connect is stable due to useCallback memoization
+  }, [enabled, socket, isConnected]);
 
   return {
     isConnected,
-    connectionError,
-    reconnect: connect,
-    disconnect,
+    connectionError: null,
+    reconnect: () => socket?.connect(),
+    disconnect: () => socket?.disconnect(),
   };
 }
 

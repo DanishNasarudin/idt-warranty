@@ -208,28 +208,24 @@ export async function updateWarrantyCase(
     // Create history entry after successful update
     await createWarrantyHistory(caseId, "UPDATE", undefined, snapshot);
 
-    // Import sseManager dynamically to avoid initialization issues
-    const { sseManager } = await import("@/lib/utils/sse-manager");
+    // Import socket emitter to broadcast updates via Socket.IO
+    const { emitToBranch } = await import("@/lib/utils/socket-emitter");
 
-    // Broadcast update to ALL connections via SSE (including same user on different windows)
+    // Broadcast update to ALL connections via Socket.IO (including same user on different windows)
     if (userId) {
       console.log(
         `[Update] Broadcasting case-updated for case ${caseId} to branch ${branchId} to all connections`
       );
-      console.log(
-        `[Update] Active connections: ${sseManager.getConnectionCount()}`
-      );
-      sseManager.broadcast(
-        branchId,
-        {
-          type: "case-updated",
-          data: { caseId, updates },
-        }
-        // No exclusion - broadcast to everyone, client filters via optimistic updates
-      );
+      await emitToBranch(branchId, "case-updated", {
+        caseId,
+        updates,
+        userId,
+      });
       console.log(`[Update] Broadcast complete`);
     } else {
-      console.warn(`[Update] No userId available, skipping SSE broadcast`);
+      console.warn(
+        `[Update] No userId available, skipping Socket.IO broadcast`
+      );
     }
 
     // Revalidate the page to reflect changes
@@ -433,6 +429,27 @@ export async function createWarrantyCase(
     // Create history entry
     await createWarrantyHistory(newCase.id, "INSERT");
 
+    // Import socket emitter and broadcast new case to branch clients
+    try {
+      const { emitToBranch } = await import("@/lib/utils/socket-emitter");
+
+      // Attempt to get current user id (if available) so clients can identify the origin
+      const { auth } = await import("@clerk/nextjs/server");
+      const { userId } = await auth().catch(() => ({ userId: undefined }));
+
+      // Broadcast the newly created case to the branch room
+      await emitToBranch(branchId, "case-created", {
+        case: {
+          ...newCase,
+          cost: Number(newCase.cost),
+        },
+        userId,
+      });
+    } catch (emitErr) {
+      // Non-fatal: log emitter failures but continue returning the created case
+      console.error("[Emit] Failed to broadcast case-created:", emitErr);
+    }
+
     // Revalidate the page to reflect changes
     revalidatePath(`/branch/${branchId}`);
     // Also revalidate settings page since it shows case counts per branch
@@ -462,6 +479,13 @@ export async function deleteWarrantyCase(
   branchId: number
 ): Promise<void> {
   try {
+    // Fetch some identifying info (serviceNo, customerName) so we can include
+    // a friendly message in emitted payloads before we delete the record.
+    const existing = await prisma.warrantyCase.findUnique({
+      where: { id: caseId },
+      select: { serviceNo: true, customerName: true },
+    });
+
     // Create history entry before deletion
     await createWarrantyHistory(caseId, "DELETE");
 
@@ -477,8 +501,23 @@ export async function deleteWarrantyCase(
     // Also revalidate settings page since it shows case counts per branch
     revalidatePath("/settings");
 
-    // TODO: Emit socket.io event here for real-time updates
-    // Example: socketServer.to(`branch-${branchId}`).emit('caseDeleted', { caseId });
+    // Emit socket.io event for real-time updates (non-blocking)
+    try {
+      const { emitToBranch } = await import("@/lib/utils/socket-emitter");
+      // Try to get userId for origin info
+      const { auth } = await import("@clerk/nextjs/server");
+      const { userId } = await auth().catch(() => ({ userId: undefined }));
+
+      await emitToBranch(branchId, "case-deleted", {
+        caseId,
+        // Include service number and customer name (if available) for friendlier toasts
+        serviceNo: existing?.serviceNo,
+        customerName: existing?.customerName,
+        userId,
+      });
+    } catch (emitErr) {
+      console.error("[Emit] Failed to broadcast case-deleted:", emitErr);
+    }
   } catch (error: any) {
     console.error("Error deleting warranty case:", error);
 

@@ -76,6 +76,13 @@ type CollaborativeEditingState = {
   ) => void;
   getServerData: (caseId: number) => WarrantyCaseWithRelations | undefined;
 
+  // Remove server data for a case (used when a case is deleted)
+  removeServerData: (caseId: number) => WarrantyCaseWithRelations | undefined;
+
+  // Clear all collaborative state for a given case (pending updates, optimistic updates,
+  // field locks, editing flags, and server data). Returns the removed server snapshot
+  // if it existed.
+  clearCaseState: (caseId: number) => WarrantyCaseWithRelations | undefined;
   getMergedData: (caseId: number) => WarrantyCaseWithRelations | undefined;
 
   // Get display value with optimistic updates merged (alias for getMergedData for clarity)
@@ -381,6 +388,75 @@ export const useCollaborativeEditingStore = create<CollaborativeEditingState>(
 
     getServerData: (caseId) => {
       return get().serverData.get(caseId);
+    },
+
+    removeServerData: (caseId) => {
+      let removed: WarrantyCaseWithRelations | undefined = undefined;
+      set((state) => {
+        const newServerData = new Map(state.serverData);
+        removed = newServerData.get(caseId);
+        newServerData.delete(caseId);
+        return { serverData: newServerData };
+      });
+      return removed;
+    },
+
+    // Clear all collaborative-related state for a case
+    clearCaseState: (caseId) => {
+      // Cancel pending updates for this case
+      set((state) => {
+        const newPending = new Map(state.pendingUpdates);
+
+        // Iterate and remove pending updates related to the case
+        for (const [key, upd] of Array.from(newPending.entries())) {
+          if (upd.caseId === caseId) {
+            try {
+              clearTimeout(upd.timeoutId);
+            } catch (e) {
+              /* ignore */
+            }
+            newPending.delete(key);
+          }
+        }
+
+        return { pendingUpdates: newPending };
+      });
+
+      // Clear optimistic updates for the case
+      set((state) => {
+        const newOptimistic = new Map(state.optimisticUpdates);
+        newOptimistic.delete(caseId);
+        return { optimisticUpdates: newOptimistic };
+      });
+
+      // Remove any field locks that belong to this case
+      set((state) => {
+        const newLocks = new Map(state.fieldLocks);
+
+        for (const key of Array.from(newLocks.keys())) {
+          if (key.startsWith(`${caseId}:`)) {
+            newLocks.delete(key);
+          }
+        }
+
+        return { fieldLocks: newLocks };
+      });
+
+      // Remove editing fields entries for this case
+      set((state) => {
+        const newEditing = new Map(state.editingFields);
+
+        for (const key of Array.from(newEditing.keys())) {
+          if (key.startsWith(`${caseId}:`)) {
+            newEditing.delete(key);
+          }
+        }
+
+        return { editingFields: newEditing };
+      });
+
+      // Finally remove server data and return the removed snapshot
+      return get().removeServerData(caseId);
     },
 
     getMergedData: (caseId) => {

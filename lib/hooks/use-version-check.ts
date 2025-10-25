@@ -4,7 +4,7 @@
  * Manages version checking for the application.
  * - Polls the version API at regular intervals
  * - Only checks when user hasn't navigated (stays on same page)
- * - Handles both SSE updates and polling fallback
+ * - Uses Socket.IO for real-time updates instead of SSE
  * - Tracks session duration to optimize resource usage
  */
 
@@ -12,7 +12,7 @@
 
 import { isVersionDifferent } from "@/lib/utils/app-version";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SSEMessage } from "../types/realtime";
+import { useSocket } from "../providers/socket-provider";
 
 type VersionInfo = {
   version: string;
@@ -37,21 +37,14 @@ type UseVersionCheckOptions = {
    * Callback when new version is detected
    */
   onVersionUpdate?: (newVersion: VersionInfo) => void;
-
-  /**
-   * Whether to use SSE for real-time version updates
-   * Falls back to polling if SSE is not available
-   * @default true
-   */
-  useSSE?: boolean;
 };
 
 export function useVersionCheck({
   pollInterval = 300000, // 5 minutes
   enabled = true,
   onVersionUpdate,
-  useSSE = true,
 }: UseVersionCheckOptions = {}) {
+  const { socket, isConnected } = useSocket();
   const [currentVersion, setCurrentVersion] = useState<VersionInfo | null>(
     null
   );
@@ -59,7 +52,6 @@ export function useVersionCheck({
   const [isChecking, setIsChecking] = useState(false);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
   const lastCheckRef = useRef<number>(0);
 
@@ -177,76 +169,36 @@ export function useVersionCheck({
   ]);
 
   /**
-   * Handle SSE messages for version updates
+   * Handle Socket.IO version update messages
    */
-  const handleSSEMessage = useCallback(
-    (event: MessageEvent) => {
-      try {
-        const message: SSEMessage = JSON.parse(event.data);
+  useEffect(() => {
+    if (!socket || !enabled || !isConnected) {
+      return;
+    }
 
-        if (message.type === "app-version-updated") {
-          const newVersion = message.data;
-          console.log("[Version Check] SSE version update:", newVersion);
+    const handleVersionUpdate = (data: VersionInfo) => {
+      console.log("[Version Check] Socket.IO version update:", data);
 
-          if (
-            currentVersion &&
-            isVersionDifferent(
-              currentVersion.buildTimestamp,
-              newVersion.buildTimestamp
-            )
-          ) {
-            setHasUpdate(true);
-            setCurrentVersion(newVersion);
-            saveStoredVersion(newVersion);
-            onVersionUpdateRef.current?.(newVersion);
-          }
-        }
-      } catch (error) {
-        console.error("[Version Check] Error handling SSE message:", error);
+      if (
+        currentVersion &&
+        isVersionDifferent(currentVersion.buildTimestamp, data.buildTimestamp)
+      ) {
+        setHasUpdate(true);
+        setCurrentVersion(data);
+        saveStoredVersion(data);
+        onVersionUpdateRef.current?.(data);
       }
-    },
-    [currentVersion, saveStoredVersion]
-  );
+    };
 
-  /**
-   * Connect to SSE for real-time updates
-   */
-  const connectSSE = useCallback(() => {
-    if (!useSSE || !enabled || eventSourceRef.current) return;
+    // Listen for version updates from Socket.IO
+    socket.on("app-version-updated", handleVersionUpdate);
 
-    try {
-      // Use the existing warranty updates SSE endpoint
-      // This is more efficient than creating a separate endpoint
-      const eventSource = new EventSource(
-        `/api/sse/warranty-updates?branchId=0`
-      );
+    console.log("[Version Check] Listening for Socket.IO version updates");
 
-      eventSource.addEventListener("message", handleSSEMessage);
-
-      eventSource.addEventListener("error", (error) => {
-        console.error("[Version Check] SSE error:", error);
-        // Don't automatically reconnect - let polling handle it
-        eventSource.close();
-        eventSourceRef.current = null;
-      });
-
-      eventSourceRef.current = eventSource;
-      console.log("[Version Check] SSE connected");
-    } catch (error) {
-      console.error("[Version Check] Failed to connect SSE:", error);
-    }
-  }, [useSSE, enabled, handleSSEMessage]);
-
-  /**
-   * Disconnect SSE
-   */
-  const disconnectSSE = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-      console.log("[Version Check] SSE disconnected");
-    }
-  }, []);
+    return () => {
+      socket.off("app-version-updated", handleVersionUpdate);
+    };
+  }, [socket, enabled, isConnected, currentVersion, saveStoredVersion]);
 
   /**
    * Handle page visibility changes
@@ -292,27 +244,6 @@ export function useVersionCheck({
       }
     };
   }, [enabled, isPageVisible, pollInterval, checkVersion]);
-
-  /**
-   * Set up SSE connection (optional)
-   * Note: In production, you might want to only connect SSE when user is authenticated
-   * and already has a warranty SSE connection
-   */
-  useEffect(() => {
-    if (enabled && useSSE && isPageVisible) {
-      // Delay SSE connection to avoid initial overhead
-      const timeout = setTimeout(() => {
-        connectSSE();
-      }, 2000);
-
-      return () => {
-        clearTimeout(timeout);
-        disconnectSSE();
-      };
-    } else {
-      disconnectSSE();
-    }
-  }, [enabled, useSSE, isPageVisible, connectSSE, disconnectSSE]);
 
   /**
    * Calculate session duration in minutes
