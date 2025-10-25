@@ -21,6 +21,10 @@ type EditableTextCellProps = {
   className?: string;
   isLocked?: boolean;
   lockedBy?: string;
+  // Optional formatter for displaying the value when not editing
+  displayFormatter?: (value: string | null) => string;
+  // Optional normalizer to transform the edited value before saving
+  normalizeOnSave?: (value: string) => string;
 };
 
 function EditableTextCellComponent({
@@ -32,6 +36,8 @@ function EditableTextCellComponent({
   className,
   isLocked = false,
   lockedBy,
+  displayFormatter,
+  normalizeOnSave,
 }: EditableTextCellProps) {
   const [localValue, setLocalValue] = useState(value || "");
   const [copied, setCopied] = useState(false);
@@ -48,13 +54,19 @@ function EditableTextCellComponent({
   useEffect(() => {
     // Only update local value if not currently editing
     if (!isEditing) {
-      setLocalValue(value || "");
+      setLocalValue(
+        (displayFormatter && displayFormatter(value)) || value || ""
+      );
     }
   }, [value, isEditing]);
 
   const handleBlur = () => {
-    if (localValue !== (value || "")) {
-      onSave(localValue);
+    // If a normalizer is provided, pass normalized value to onSave
+    const valueToSave = normalizeOnSave
+      ? normalizeOnSave(localValue)
+      : localValue;
+    if (valueToSave !== (value || "")) {
+      onSave(valueToSave);
     }
     onEditEnd();
   };
@@ -78,7 +90,8 @@ function EditableTextCellComponent({
     e.stopPropagation();
     if (value) {
       try {
-        await navigator.clipboard.writeText(value);
+        const copyValue = normalizeOnSave ? normalizeOnSave(value) : value;
+        await navigator.clipboard.writeText(copyValue);
         setCopied(true);
         toast.success("Copied to clipboard");
         setTimeout(() => setCopied(false), 2000);
@@ -128,9 +141,13 @@ function EditableTextCellComponent({
             <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
           )}
           <span className={cn(isLocked && "text-muted-foreground")}>
-            {value || (
-              <span className="italic text-muted-foreground">Empty</span>
-            )}
+            {displayFormatter
+              ? displayFormatter(value) || (
+                  <span className="italic text-muted-foreground">Empty</span>
+                )
+              : value || (
+                  <span className="italic text-muted-foreground">Empty</span>
+                )}
           </span>
         </div>
       </button>
@@ -180,7 +197,9 @@ export const EditableTextCell = memo(
       prevProps.isEditing === nextProps.isEditing &&
       prevProps.isLocked === nextProps.isLocked &&
       prevProps.lockedBy === nextProps.lockedBy &&
-      prevProps.className === nextProps.className
+      prevProps.className === nextProps.className &&
+      prevProps.displayFormatter === nextProps.displayFormatter &&
+      prevProps.normalizeOnSave === nextProps.normalizeOnSave
     );
   }
 );

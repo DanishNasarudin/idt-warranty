@@ -5,6 +5,10 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { CaseStatus } from "@/lib/generated/prisma";
 import { StaffOption, WarrantyCaseWithRelations } from "@/lib/types/warranty";
 import {
+  formatMalaysiaPhoneForDisplay,
+  normalizeMalaysiaPhone,
+} from "@/lib/utils/phone";
+import {
   getIdtPcClassName,
   getStaffBadgeClassName,
   getStatusColor,
@@ -257,6 +261,8 @@ function WarrantyCaseRowComponent({
             onEditEnd={() => handleEditEnd("customerContact")}
             isLocked={customerContactLock.isLocked}
             lockedBy={customerContactLock.lockedBy}
+            displayFormatter={formatMalaysiaPhoneForDisplay}
+            normalizeOnSave={normalizeMalaysiaPhone}
           />
         </TableCell>
 
