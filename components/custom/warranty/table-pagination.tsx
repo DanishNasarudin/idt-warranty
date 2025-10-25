@@ -41,11 +41,13 @@ export function TablePagination({ filters, totalCases }: TablePaginationProps) {
 
   const updatePage = useCallback(
     (page: number) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
       params.set("page", String(page));
 
       startTransition(() => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        router.push(`${pathname ?? ""}?${params.toString()}`, {
+          scroll: false,
+        });
       });
     },
     [pathname, router, searchParams]
@@ -53,12 +55,14 @@ export function TablePagination({ filters, totalCases }: TablePaginationProps) {
 
   const updateLimit = useCallback(
     (limit: number) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
       params.set("limit", String(limit));
       params.set("page", "1"); // Reset to first page when changing limit
 
       startTransition(() => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        router.push(`${pathname ?? ""}?${params.toString()}`, {
+          scroll: false,
+        });
       });
     },
     [pathname, router, searchParams]

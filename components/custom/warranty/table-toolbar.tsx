@@ -34,17 +34,17 @@ export function TableToolbar({ filters }: TableToolbarProps) {
   const [isPending, startTransition] = useTransition();
 
   // Local state for optimistic updates (immediate UI feedback)
-  const [searchValue, setSearchValue] = useState(filters.search);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [searchValue, setSearchValue] = useState<string>(filters.search ?? "");
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync local state when filters change from URL
   useEffect(() => {
-    setSearchValue(filters.search);
+    setSearchValue(filters.search ?? "");
   }, [filters.search]);
 
   const updateSearchParams = useCallback(
     (updates: Partial<WarrantyCaseFilters>, immediate = false) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
 
       // Update params
       Object.entries(updates).forEach(([key, value]) => {
@@ -61,7 +61,8 @@ export function TableToolbar({ filters }: TableToolbarProps) {
       }
 
       const updateFn = () => {
-        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+        const base = pathname ?? "";
+        router.push(`${base}?${params.toString()}`, { scroll: false });
       };
 
       if (immediate) {
@@ -103,7 +104,7 @@ export function TableToolbar({ filters }: TableToolbarProps) {
       clearTimeout(debounceTimerRef.current);
     }
     startTransition(() => {
-      router.push(pathname, { scroll: false });
+      router.push(pathname ?? "", { scroll: false });
     });
   };
 

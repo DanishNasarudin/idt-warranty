@@ -35,9 +35,11 @@ export function DashboardDateFilter() {
   const searchParams = useSearchParams();
 
   // Get current values from URL with safe defaults
-  const currentPreset = parseDateRangePreset(searchParams.get("preset"));
-  const currentStartDate = searchParams.get("startDate") || undefined;
-  const currentEndDate = searchParams.get("endDate") || undefined;
+  const currentPreset = parseDateRangePreset(
+    searchParams?.get("preset") ?? undefined
+  );
+  const currentStartDate = searchParams?.get("startDate") || undefined;
+  const currentEndDate = searchParams?.get("endDate") || undefined;
 
   const [preset, setPreset] = useState<DateRangePreset>(currentPreset);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -56,7 +58,7 @@ export function DashboardDateFilter() {
       newStartDate?: string,
       newEndDate?: string
     ) => {
-      const params = new URLSearchParams(searchParams);
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
 
       params.set("preset", newPreset);
 

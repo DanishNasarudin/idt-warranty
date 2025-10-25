@@ -83,7 +83,7 @@ export function TableSort({ sortColumns }: TableSortProps) {
 
   // Update URL with new sort configuration
   const updateSort = (newSorts: SortColumn[]) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
 
     if (newSorts.length === 0) {
       params.delete("sort");
@@ -98,7 +98,7 @@ export function TableSort({ sortColumns }: TableSortProps) {
     params.set("page", "1");
 
     startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      router.push(`${pathname ?? ""}?${params.toString()}`, { scroll: false });
     });
   };
 

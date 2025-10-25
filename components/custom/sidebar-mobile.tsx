@@ -40,7 +40,7 @@ export default function SidebarMobile({ branches }: SidebarMobileProps) {
 
   // Check if current path is a branch path
   const currentBranch = useMemo(() => {
-    const branchMatch = pathname.match(/^\/branch\/(\d+)/);
+    const branchMatch = (pathname ?? "").match(/^\/branch\/(\d+)/);
     if (branchMatch) {
       const branchId = parseInt(branchMatch[1]);
       return branches.find((branch) => branch.id === branchId);
