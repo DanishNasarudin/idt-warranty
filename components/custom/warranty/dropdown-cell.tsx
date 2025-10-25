@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ChevronDown, Lock, X } from "lucide-react";
-import { memo, useState } from "react";
+import { useState } from "react";
 
 type DropdownOption = {
   label: string;
