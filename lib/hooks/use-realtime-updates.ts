@@ -90,6 +90,29 @@ export function useRealtimeUpdates({
   const { setFieldLock, removeFieldLock, updateServerData, isEditing } =
     useCollaborativeEditingStore();
 
+  // Use refs for store actions/selectors to avoid effect re-registration
+  // and stale closures when these functions change identity.
+  const setFieldLockRef = useRef(setFieldLock);
+  const removeFieldLockRef = useRef(removeFieldLock);
+  const updateServerDataRef = useRef(updateServerData);
+  const isEditingRef = useRef(isEditing);
+
+  useEffect(() => {
+    setFieldLockRef.current = setFieldLock;
+  }, [setFieldLock]);
+
+  useEffect(() => {
+    removeFieldLockRef.current = removeFieldLock;
+  }, [removeFieldLock]);
+
+  useEffect(() => {
+    updateServerDataRef.current = updateServerData;
+  }, [updateServerData]);
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
   // Setup Socket.IO event listeners
   useEffect(() => {
     if (!socket || !enabled || !isConnected) {
@@ -152,7 +175,7 @@ export function useRealtimeUpdates({
       expiresAt: number;
     }) => {
       console.log("[Socket.IO] Field lock acquired:", data);
-      setFieldLock({ ...data, timestamp: Date.now() });
+      setFieldLockRef.current({ ...data, timestamp: Date.now() });
     };
 
     // Handle field lock released
@@ -161,7 +184,7 @@ export function useRealtimeUpdates({
       field: string;
     }) => {
       console.log("[Socket.IO] Field lock released:", data);
-      removeFieldLock(data.caseId, data.field);
+      removeFieldLockRef.current(data.caseId, data.field);
     };
 
     // Handle case updated
@@ -185,7 +208,7 @@ export function useRealtimeUpdates({
       // Only update fields that are not currently being edited
       const filteredUpdates: Record<string, any> = {};
       Object.entries(updates).forEach(([field, value]) => {
-        const editing = isEditing(caseId, field);
+        const editing = isEditingRef.current(caseId, field);
         console.log(
           `[Socket.IO] Field ${field}: editing=${editing}, value=`,
           value
@@ -203,7 +226,7 @@ export function useRealtimeUpdates({
 
       // Update server data (but not optimistic updates)
       if (Object.keys(filteredUpdates).length > 0) {
-        updateServerData(caseId, filteredUpdates);
+        updateServerDataRef.current(caseId, filteredUpdates);
         onCaseUpdateRef.current?.(caseId, filteredUpdates);
         console.log("[Socket.IO] Applied updates to store");
       } else {

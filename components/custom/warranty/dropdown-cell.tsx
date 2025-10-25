@@ -173,19 +173,9 @@ function DropdownCellComponent({
   return dropdownContent;
 }
 
-// Memoize to prevent unnecessary re-renders
-export const DropdownCell = memo(
-  DropdownCellComponent,
-  (prevProps, nextProps) => {
-    return (
-      prevProps.value === nextProps.value &&
-      prevProps.isLocked === nextProps.isLocked &&
-      prevProps.lockedBy === nextProps.lockedBy &&
-      prevProps.allowNull === nextProps.allowNull &&
-      prevProps.className === nextProps.className &&
-      prevProps.options.length === nextProps.options.length
-    );
-  }
-);
+// Export as a plain component to avoid subtle memoization bugs that
+// could prevent updates from propagating on the first change.
+export const DropdownCell = DropdownCellComponent;
 
-DropdownCell.displayName = "DropdownCell";
+// Set display name for React devtools (cast to any to satisfy TS)
+(DropdownCell as any).displayName = "DropdownCell";

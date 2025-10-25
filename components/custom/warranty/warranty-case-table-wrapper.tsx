@@ -82,7 +82,7 @@ export function WarrantyCaseTableWrapper({
     <div className="space-y-4">
       {/* Connection and Saving status indicators */}
       {userId && (
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-xs min-h-8">
           {/* Connection status */}
           <div className="flex items-center gap-2 text-muted-foreground">
             <div
