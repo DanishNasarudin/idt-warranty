@@ -29,9 +29,13 @@ type WarrantyCaseRowProps = {
   onAcquireFieldLock?: (caseId: number, field: string) => Promise<boolean>;
   onReleaseFieldLock?: (caseId: number, field: string) => Promise<void>;
   userId?: string;
-  getFieldLockStatus: (field: string) => {
-    isLocked: boolean;
-    lockedBy?: string;
+  // Precomputed lock statuses for fields used in this row. Passed from
+  // the parent table so we can re-render immediately when locks change.
+  fieldLockStatuses: {
+    createdAt: { isLocked: boolean; lockedBy?: string };
+    serviceNo: { isLocked: boolean; lockedBy?: string };
+    customerName: { isLocked: boolean; lockedBy?: string };
+    customerContact: { isLocked: boolean; lockedBy?: string };
   };
 };
 
@@ -73,7 +77,7 @@ function WarrantyCaseRowComponent({
   onAcquireFieldLock,
   onReleaseFieldLock,
   userId,
-  getFieldLockStatus,
+  fieldLockStatuses,
 }: WarrantyCaseRowProps) {
   // Local state for editing - prevents global re-renders
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -120,10 +124,10 @@ function WarrantyCaseRowComponent({
     [onReleaseFieldLock, case_.id]
   );
 
-  const createdAtLock = getFieldLockStatus("createdAt");
-  const serviceNoLock = getFieldLockStatus("serviceNo");
-  const customerNameLock = getFieldLockStatus("customerName");
-  const customerContactLock = getFieldLockStatus("customerContact");
+  const createdAtLock = fieldLockStatuses.createdAt;
+  const serviceNoLock = fieldLockStatuses.serviceNo;
+  const customerNameLock = fieldLockStatuses.customerName;
+  const customerContactLock = fieldLockStatuses.customerContact;
 
   return (
     <Fragment>
@@ -299,6 +303,11 @@ export const WarrantyCaseRow = memo(
       prevProps.userId !== nextProps.userId ||
       prevProps.staffOptions.length !== nextProps.staffOptions.length
     ) {
+      return false;
+    }
+
+    // If field lock statuses changed, re-render so UI reflects locks immediately
+    if (prevProps.fieldLockStatuses !== nextProps.fieldLockStatuses) {
       return false;
     }
 

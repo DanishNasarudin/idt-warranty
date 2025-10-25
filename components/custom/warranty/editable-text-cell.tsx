@@ -97,7 +97,11 @@ function EditableTextCellComponent({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         className={cn("h-8 border-primary px-1", className)}
-        disabled={isLocked}
+        // Use readOnly instead of disabled so the input can still lose focus
+        // (allowing the user to click outside to blur/deselect) even when
+        // the field becomes locked while editing. Disabled inputs can
+        // interfere with blur behavior in some browsers/flows.
+        readOnly={isLocked}
       />
     );
   }

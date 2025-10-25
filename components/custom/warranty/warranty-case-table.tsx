@@ -196,27 +196,45 @@ export function WarrantyCaseTable({
               </TableCell>
             </TableRow>
           ) : (
-            displayedCases.map((case_) => (
-              <WarrantyCaseRow
-                key={case_.id}
-                case_={case_}
-                staffOptions={staffOptions}
-                isExpanded={expandedRows.has(case_.id)}
-                onToggleExpanded={() => toggleRowExpansion(case_.id)}
-                onUpdate={(field, value) =>
-                  handleUpdate(case_.id, field, value)
-                }
-                onMultiFieldUpdate={(updates) =>
-                  handleMultiFieldUpdate(case_.id, updates)
-                }
-                onAcquireFieldLock={onAcquireFieldLock}
-                onReleaseFieldLock={onReleaseFieldLock}
-                userId={userId}
-                getFieldLockStatus={(field) =>
-                  getFieldLockStatus(case_.id, field)
-                }
-              />
-            ))
+            displayedCases.map((case_) => {
+              // Compute current lock statuses for visible fields and
+              // pass them down as a prop so rows re-render when locks change.
+              const createdAtLock = getFieldLockStatus(case_.id, "createdAt");
+              const serviceNoLock = getFieldLockStatus(case_.id, "serviceNo");
+              const customerNameLock = getFieldLockStatus(
+                case_.id,
+                "customerName"
+              );
+              const customerContactLock = getFieldLockStatus(
+                case_.id,
+                "customerContact"
+              );
+
+              return (
+                <WarrantyCaseRow
+                  key={case_.id}
+                  case_={case_}
+                  staffOptions={staffOptions}
+                  isExpanded={expandedRows.has(case_.id)}
+                  onToggleExpanded={() => toggleRowExpansion(case_.id)}
+                  onUpdate={(field, value) =>
+                    handleUpdate(case_.id, field, value)
+                  }
+                  onMultiFieldUpdate={(updates) =>
+                    handleMultiFieldUpdate(case_.id, updates)
+                  }
+                  onAcquireFieldLock={onAcquireFieldLock}
+                  onReleaseFieldLock={onReleaseFieldLock}
+                  userId={userId}
+                  fieldLockStatuses={{
+                    createdAt: createdAtLock,
+                    serviceNo: serviceNoLock,
+                    customerName: customerNameLock,
+                    customerContact: customerContactLock,
+                  }}
+                />
+              );
+            })
           )}
         </TableBody>
       </Table>
