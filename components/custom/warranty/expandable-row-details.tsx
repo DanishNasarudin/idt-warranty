@@ -36,7 +36,7 @@ import {
   MessageCircle,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ImageList } from "./image-list";
 import { ImageUpload } from "./image-upload";
@@ -221,6 +221,33 @@ export function ExpandableRowDetails({
     // Release lock if locking is enabled
     if (onReleaseFieldLock) {
       await onReleaseFieldLock(case_.id, field);
+    }
+  };
+
+  const handleKeyDown = (
+    field: string,
+    e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    // When Enter is pressed, blur the element so onBlur saves the field.
+    // For textareas, allow Shift+Enter to insert a newline instead of blurring.
+    if (e.key === "Enter") {
+      const el = e.currentTarget as HTMLInputElement | HTMLTextAreaElement;
+
+      // If this is a textarea and Shift is held, allow the newline
+      if (el.tagName === "TEXTAREA") {
+        if (e.shiftKey) {
+          // Let the browser insert a newline
+          return;
+        }
+        // Otherwise prevent default newline and blur to trigger save
+        e.preventDefault();
+        el.blur();
+        return;
+      }
+
+      // For inputs (single-line), prevent default and blur
+      e.preventDefault();
+      el.blur();
     }
   };
 
@@ -469,6 +496,7 @@ export function ExpandableRowDetails({
                         }
                         onFocus={() => handleFocus(field.name)}
                         onBlur={() => handleBlur(field.name)}
+                        onKeyDown={(e) => handleKeyDown(field.name, e)}
                         disabled={lockStatus.isLocked}
                         className={cn(
                           "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
@@ -486,6 +514,7 @@ export function ExpandableRowDetails({
                         }
                         onFocus={() => handleFocus(field.name)}
                         onBlur={() => handleBlur(field.name)}
+                        onKeyDown={(e) => handleKeyDown(field.name, e)}
                         disabled={lockStatus.isLocked}
                         className={cn(lockStatus.isLocked && "bg-muted/50")}
                       />
